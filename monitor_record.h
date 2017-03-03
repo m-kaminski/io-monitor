@@ -1,6 +1,11 @@
 #ifndef __MONITOR_RECORD_H
 #define __MONITOR_RECORD_H
+
+#ifdef __FreeBSD__
+#include <sys/syslimits.h>
+#else
 #include <linux/limits.h>
+#endif
 #define STR_LEN 256
 
 struct monitor_record_t {

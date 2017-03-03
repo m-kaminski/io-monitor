@@ -47,13 +47,15 @@
 #include <sys/shm.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#ifndef __FreeBSD__
 #include <sys/xattr.h>
+#include <endian.h>
+#endif
 #include <sys/uio.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
-#include <endian.h>
 #include <netinet/in.h>
 #include "ops.h"
 #include "domains.h"
@@ -258,11 +260,13 @@ typedef int (*orig_lremovexattr_f_type)(const char* path, const char* name);
 typedef int (*orig_fremovexattr_f_type)(int fd, const char* name);
 
 // mount
+#ifndef __FreeBSD__
 typedef int (*orig_mount_f_type)(const char* source, const char* target,
                  const char* filesystemtype, unsigned long mountflags,
                  const void* data);
 typedef int (*orig_umount_f_type)(const char* target);
 typedef int (*orig_umount2_f_type)(const char* target, int flags);
+#endif
 
 // directory metadata
 typedef DIR* (*orig_opendir_f_type)(const char* name);
@@ -375,9 +379,11 @@ static orig_lremovexattr_f_type orig_lremovexattr = NULL;
 static orig_fremovexattr_f_type orig_fremovexattr = NULL;
 
 // filesystem mount/umount
+#ifndef __FreeBSD__
 static orig_mount_f_type orig_mount = NULL;
 static orig_umount_f_type orig_umount = NULL;
 static orig_umount2_f_type orig_umount2 = NULL;
+#endif
 
 // directory metadata
 static orig_opendir_f_type orig_opendir = NULL;
@@ -549,9 +555,11 @@ void load_library_functions() {
    orig_fremovexattr = (orig_fremovexattr_f_type)dlsym(RTLD_NEXT,"fremovexattr");
 
    // mount/umount
+#ifndef __FreeBSD__
    orig_mount = (orig_mount_f_type)dlsym(RTLD_NEXT,"mount");
    orig_umount = (orig_umount_f_type)dlsym(RTLD_NEXT,"umount");
    orig_umount2 = (orig_umount2_f_type)dlsym(RTLD_NEXT,"umount2");
+#endif
 
    // directory metadata
    orig_opendir = (orig_opendir_f_type)dlsym(RTLD_NEXT,"opendir");
@@ -717,7 +725,11 @@ int send_tcp_socket(struct monitor_record_t* monitor_record)
       if (rc == 0) {
          int one = 1;
          int send_buffer_size = 256;
-         setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+#ifdef __FreeBSD__
+         setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+#else
+	 setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+#endif
          setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF,
                     &send_buffer_size, sizeof(send_buffer_size));
          rc = write(sockfd, msg_size_header, 10);
@@ -1772,6 +1784,7 @@ int fremovexattr(int fd, const char* name)
 
 //*****************************************************************************
 
+#ifndef __FreeBSD__
 int mount(const char* source, const char* target,
           const char* filesystemtype, unsigned long mountflags,
           const void* data)
@@ -1792,7 +1805,7 @@ int mount(const char* source, const char* target,
 
    return rc;
 }
-
+#endif
 //*****************************************************************************
 
 int umount(const char* target)
