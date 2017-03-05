@@ -47,12 +47,16 @@
 #include <sys/shm.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#ifndef __FreeBSD__
 #include <sys/xattr.h>
+#include <endian.h>
+#endif
 #include <sys/uio.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include "ops.h"
 #include "domains.h"
 #include "domains_names.h"
@@ -101,6 +105,7 @@ static const char* ENV_FACILITY_ID = "FACILITY_ID";
 static const char* ENV_MESSAGE_QUEUE_PATH = "MESSAGE_QUEUE_PATH";
 static const char* ENV_START_ON_OPEN = "START_ON_OPEN";
 static const char* ENV_MONITOR_DOMAINS = "MONITOR_DOMAINS";
+static const char* ENV_START_ON_ELAPSED = "START_ON_ELAPSED";
 
 static const int SOCKET_PORT = 8001;
 static const int DOMAIN_UNSPECIFIED = -1;
@@ -178,6 +183,7 @@ typedef int (*orig_fclose_f_type)(FILE* fp);
 
 // write
 typedef ssize_t (*orig_write_f_type)(int fd, const void* buf, size_t count);
+typedef ssize_t (*orig_send_f_type)(int fd, const void* buf, size_t count, int flags);
 typedef ssize_t (*orig_pwrite_f_type)(int fd, const void* buf, size_t count, off_t offset);
 typedef ssize_t (*orig_writev_f_type)(int fd, const struct iovec* iov, int iovcnt);
 typedef ssize_t (*orig_pwritev_f_type)(int fd, const struct iovec* iov, int iovcnt,
@@ -188,6 +194,7 @@ typedef size_t (*orig_fwrite_f_type)(const void* ptr, size_t size, size_t nmemb,
 
 // read
 typedef ssize_t (*orig_read_f_type)(int fd, void* buf, size_t count);
+typedef ssize_t (*orig_recv_f_type)(int fd, void* buf, size_t count, int flags);
 typedef ssize_t (*orig_pread_f_type)(int fd, void* buf, size_t count, off_t offset);
 typedef ssize_t (*orig_readv_f_type)(int fd, const struct iovec* iov, int iovcnt);
 typedef ssize_t (*orig_preadv_f_type)(int fd, const struct iovec* iov, int iovcnt,
@@ -253,11 +260,13 @@ typedef int (*orig_lremovexattr_f_type)(const char* path, const char* name);
 typedef int (*orig_fremovexattr_f_type)(int fd, const char* name);
 
 // mount
+#ifndef __FreeBSD__
 typedef int (*orig_mount_f_type)(const char* source, const char* target,
                  const char* filesystemtype, unsigned long mountflags,
                  const void* data);
 typedef int (*orig_umount_f_type)(const char* target);
 typedef int (*orig_umount2_f_type)(const char* target, int flags);
+#endif
 
 // directory metadata
 typedef DIR* (*orig_opendir_f_type)(const char* name);
@@ -302,8 +311,9 @@ typedef int (*orig_truncate_f_type)(const char* path, off_t length);
 typedef int (*orig_ftruncate_f_type)(int fd, off_t length);
 
 // network
-typedef int (*orig_connect_f_type)(int socket, const struct sockaddr *addr, socklen_t *addrlen);
+typedef int (*orig_connect_f_type)(int socket, const struct sockaddr *addr, socklen_t addrlen);
 typedef int (*orig_accept_f_type)(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+typedef int (*orig_bind_f_type)(int socket, const struct sockaddr *addr, socklen_t addrlen);
 typedef int (*orig_listen_f_type)(int sockfd, int backlog);
 typedef int (*orig_socket_f_type)(int domain, int type, int protocol);
    
@@ -313,6 +323,9 @@ static char facility[5];
 static const char* start_on_open = NULL;
 static int socket_fd = -1;
 static int paused = 0;
+static int have_elapsed_threshold = 0;
+static double elapsed_threshold = 0.0;
+
 
 // open/close
 static orig_open_f_type orig_open = NULL;
@@ -326,6 +339,7 @@ static orig_fclose_f_type orig_fclose = NULL;
 
 // writes
 static orig_write_f_type orig_write = NULL;
+static orig_send_f_type orig_send = NULL;
 static orig_pwrite_f_type orig_pwrite = NULL;
 static orig_writev_f_type orig_writev = NULL;
 static orig_pwritev_f_type orig_pwritev = NULL;
@@ -335,6 +349,7 @@ static orig_fwrite_f_type orig_fwrite = NULL;
 
 // reads
 static orig_read_f_type orig_read = NULL;
+static orig_recv_f_type orig_recv = NULL;
 static orig_pread_f_type orig_pread = NULL;
 static orig_readv_f_type orig_readv = NULL;
 static orig_preadv_f_type orig_preadv = NULL;
@@ -364,9 +379,11 @@ static orig_lremovexattr_f_type orig_lremovexattr = NULL;
 static orig_fremovexattr_f_type orig_fremovexattr = NULL;
 
 // filesystem mount/umount
+#ifndef __FreeBSD__
 static orig_mount_f_type orig_mount = NULL;
 static orig_umount_f_type orig_umount = NULL;
 static orig_umount2_f_type orig_umount2 = NULL;
+#endif
 
 // directory metadata
 static orig_opendir_f_type orig_opendir = NULL;
@@ -405,6 +422,7 @@ static orig_ftruncate_f_type orig_ftruncate = NULL;
 // network
 static orig_connect_f_type orig_connect = NULL;
 static orig_accept_f_type orig_accept = NULL;
+static orig_bind_f_type orig_bind = NULL;
 static orig_listen_f_type orig_listen = NULL;
 static orig_socket_f_type orig_socket = NULL;
 
@@ -440,8 +458,9 @@ __attribute__((constructor)) void init() {
 
    GET_END_TIME();
 
-   
-   record(START_STOP, START, 0, cmdline, NULL,
+   char ppid[10];
+   sprintf(ppid, "%d", getppid());
+   record(START_STOP, START, 0, cmdline, ppid,
           TIME_BEFORE(), TIME_AFTER(), 0, ZERO_BYTES);
    
 }
@@ -472,8 +491,16 @@ void load_library_functions() {
    }
 
    start_on_open = getenv(ENV_START_ON_OPEN);
+   const char* start_on_elapsed = getenv(ENV_START_ON_ELAPSED);
    if (start_on_open != NULL) {
       paused = 1;
+   } else if (start_on_elapsed != NULL) {
+      double elapsed_value = atof(start_on_elapsed);
+      if (elapsed_value > 0.1) {
+         elapsed_threshold = elapsed_value;
+         have_elapsed_threshold = 1;
+         paused = 1;
+      }
    }
 
    // open/close
@@ -488,6 +515,7 @@ void load_library_functions() {
 
    // write
    orig_write = (orig_write_f_type)dlsym(RTLD_NEXT,"write");
+   orig_send = (orig_send_f_type)dlsym(RTLD_NEXT,"send");
    orig_pwrite = (orig_pwrite_f_type)dlsym(RTLD_NEXT,"pwrite");
    orig_writev = (orig_writev_f_type)dlsym(RTLD_NEXT,"writev");
    orig_pwritev = (orig_pwritev_f_type)dlsym(RTLD_NEXT,"pwritev");
@@ -497,6 +525,7 @@ void load_library_functions() {
 
    // read
    orig_read = (orig_read_f_type)dlsym(RTLD_NEXT,"read");
+   orig_recv = (orig_recv_f_type)dlsym(RTLD_NEXT,"recv");
    orig_pread = (orig_pread_f_type)dlsym(RTLD_NEXT,"pread");
    orig_readv = (orig_readv_f_type)dlsym(RTLD_NEXT,"readv");
    orig_preadv = (orig_preadv_f_type)dlsym(RTLD_NEXT,"preadv");
@@ -526,9 +555,11 @@ void load_library_functions() {
    orig_fremovexattr = (orig_fremovexattr_f_type)dlsym(RTLD_NEXT,"fremovexattr");
 
    // mount/umount
+#ifndef __FreeBSD__
    orig_mount = (orig_mount_f_type)dlsym(RTLD_NEXT,"mount");
    orig_umount = (orig_umount_f_type)dlsym(RTLD_NEXT,"umount");
    orig_umount2 = (orig_umount2_f_type)dlsym(RTLD_NEXT,"umount2");
+#endif
 
    // directory metadata
    orig_opendir = (orig_opendir_f_type)dlsym(RTLD_NEXT,"opendir");
@@ -567,6 +598,7 @@ void load_library_functions() {
    // network
    orig_connect = (orig_connect_f_type)dlsym(RTLD_NEXT,"connect");
    orig_accept = (orig_accept_f_type)dlsym(RTLD_NEXT,"accept");
+   orig_bind = (orig_bind_f_type)dlsym(RTLD_NEXT,"bind");
    orig_listen = (orig_listen_f_type)dlsym(RTLD_NEXT,"listen");
    orig_socket = (orig_socket_f_type)dlsym(RTLD_NEXT,"socket");
 
@@ -693,7 +725,11 @@ int send_tcp_socket(struct monitor_record_t* monitor_record)
       if (rc == 0) {
          int one = 1;
          int send_buffer_size = 256;
-         setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+#ifdef __FreeBSD__
+         setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
+#else
+	 setsockopt(sockfd, SOL_TCP, TCP_NODELAY, &one, sizeof(one));
+#endif
          setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF,
                     &send_buffer_size, sizeof(send_buffer_size));
          rc = write(sockfd, msg_size_header, 10);
@@ -789,19 +825,26 @@ void record(DOMAIN_TYPE dom_type,
          return;
       }
 
-      if (paused && (strstr(s1, start_on_open) != NULL)) {
+      if (paused && (start_on_open != NULL) &&
+          (strstr(s1, start_on_open) != NULL)) {
+         PUTS("starting on open")
          paused = 0;
       }
-   }
-
-   if (paused) {
-      return;
    }
 
    // sec to msec
    elapsed_time = (end_time->tv_sec - start_time->tv_sec) * 1000.0;
    // usec to ms
    elapsed_time += (end_time->tv_usec - start_time->tv_usec) / 1000.0;
+
+   if (paused && have_elapsed_threshold && (elapsed_time > elapsed_threshold)) {
+      PUTS("starting on elapsed")
+      paused = 0;
+   }
+
+   if (paused) {
+      return;
+   }
 
    timestamp = (unsigned long)time(NULL);
    pid = getpid();
@@ -969,6 +1012,65 @@ int fclose(FILE* fp)
 
 //*****************************************************************************
 
+
+void check_for_http(int dom, int fd, const char* buf, size_t count, struct timeval *s, struct timeval *e)
+{
+  char buffer1[PATH_MAX];
+  char buffer2[STR_LEN];
+
+  int line = 0;
+  int i;
+  int linelen[2] = {0,0};
+  char *tgt;
+
+  for (i = 0; i!= count;  i++) {
+    if (buf[i]==0)
+      return; // not a HTTP header!
+
+    if (buf[i]=='\r') {
+      if (i<count && buf[i+1] == '\n') {
+	i++;
+	line++;
+	if (line > 1)
+	  break;
+      } else {
+	return; // not a HTTP!
+      }
+    }
+    if (line) {
+      buffer2[linelen[1]]=buf[i];
+      linelen[1]++;
+      if (linelen[1]>=STR_LEN)
+	return;
+      buffer2[linelen[1]]=0;
+    } else {
+      buffer1[linelen[0]]=buf[i];
+      linelen[0]++;
+      if (linelen[0]>=PATH_MAX)
+	return;
+      buffer1[linelen[0]]=0;
+    }
+  }
+  if (!strstr(buffer1, "HTTP")) {
+    return; // Not a HTTP event!
+  }
+
+  if ((!strncmp("GET ",buffer1, 4))
+      || (!strncmp("PUT ", buffer1, 4))
+      || (!strncmp("HEAD ", buffer1, 5))
+      || (!strncmp("POST ", buffer1, 5))
+      || (!strncmp("DELETE ", buffer1, 7))) {
+    if (dom == FILE_WRITE) {
+      record(HTTP, HTTP_REQ_SEND, fd, buffer1, buffer2,
+	     s, e, 0, 0);
+    } else {
+      record(HTTP, HTTP_REQ_RECV, fd, buffer1, buffer2,
+	     s, e, 0, 0);
+    }
+  }
+  
+}
+
 ssize_t write(int fd, const void* buf, size_t count)
 {
    CHECK_LOADED_FNS()
@@ -984,11 +1086,33 @@ ssize_t write(int fd, const void* buf, size_t count)
 
    record(FILE_WRITE, WRITE, fd, NULL, NULL,
           TIME_BEFORE(), TIME_AFTER(), error_code, bytes_written);
-
+   check_for_http(FILE_WRITE, fd, buf, count, TIME_BEFORE(), TIME_AFTER());
    return bytes_written;
 }
 
 //*****************************************************************************
+
+ssize_t send(int fd, const void* buf, size_t count, int flags)
+{
+   CHECK_LOADED_FNS()
+   PUTS("send")
+   DECL_VARS()
+   GET_START_TIME()
+     const ssize_t bytes_written = orig_send(fd, buf, count, flags);
+   GET_END_TIME()
+
+   if (bytes_written < 0) {
+      error_code = errno;
+   }
+
+   record(FILE_WRITE, WRITE, fd, NULL, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, bytes_written);
+   check_for_http(FILE_WRITE, fd, buf, count, TIME_BEFORE(), TIME_AFTER());
+   return bytes_written;
+}
+
+//*****************************************************************************
+
 
 ssize_t pwrite(int fd, const void* buf, size_t count, off_t offset)
 {
@@ -1147,9 +1271,31 @@ ssize_t read(int fd, void* buf, size_t count)
    }
 
    record(FILE_READ, READ, fd, NULL, NULL,
-          TIME_BEFORE(), TIME_AFTER(), error_code, bytes_read);
-
+         TIME_BEFORE(), TIME_AFTER(), error_code, bytes_read);
+   check_for_http(FILE_READ, fd, buf, count, TIME_BEFORE(), TIME_AFTER());
+   
    return bytes_read;
+}
+
+//*****************************************************************************
+
+ssize_t recv(int fd, void* buf, size_t count, int flags)
+{
+   CHECK_LOADED_FNS()
+   PUTS("recv")
+   DECL_VARS()
+   GET_START_TIME()
+     const ssize_t bytes_recv = orig_recv(fd, buf, count, flags);
+   GET_END_TIME()
+
+   if (bytes_recv < 0) {
+      error_code = errno;
+   }
+
+   record(FILE_READ, READ, fd, NULL, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, bytes_recv);
+   check_for_http(FILE_READ, fd, buf, count, TIME_BEFORE(), TIME_AFTER());
+   return bytes_recv;
 }
 
 //*****************************************************************************
@@ -1638,6 +1784,7 @@ int fremovexattr(int fd, const char* name)
 
 //*****************************************************************************
 
+#ifndef __FreeBSD__
 int mount(const char* source, const char* target,
           const char* filesystemtype, unsigned long mountflags,
           const void* data)
@@ -1658,7 +1805,7 @@ int mount(const char* source, const char* target,
 
    return rc;
 }
-
+#endif
 //*****************************************************************************
 
 int umount(const char* target)
@@ -2360,5 +2507,82 @@ int ftruncate(int fd, off_t length)
    return rc;
 }
 
+char *real_ip(const struct sockaddr *addr, char *out)
+{
+   /* for now assume that addr->sa_family = AF_INET; for inet6 or other sockets,
+      different way of differentiating will be needed */
+   if (addr->sa_family != AF_INET) {
+     PUTS("Warn: connect to addresses other than AF_INET won't work with current gen of io_monitor");
+     return 0 ;
+   }
+   struct sockaddr_in * ai = (((struct sockaddr_in*)(addr)));
+   char* real_path = malloc(100);
+   char* ip = (char*)&ai->sin_addr;
+
+   sprintf(&real_path[0], "%u.%u.%u.%u:%u" ,
+	   0xff& ip[0], 0xff& ip[1] ,0xff& ip[2] ,0xff& ip[3],
+	   be16toh(ai->sin_port));
+   return real_path;
+}
+
+//*****************************************************************************
+int connect(int socket, const struct sockaddr *addr, socklen_t addrlen)
+{
+   CHECK_LOADED_FNS()
+   PUTS("connect")
+   DECL_VARS()
+   GET_START_TIME()
+     const int ret = orig_connect(socket, addr, addrlen);
+   GET_END_TIME();
+
+   const int fd = socket;
+
+   if (ret == -1) {
+      error_code = errno;
+   }
+
+   char *real_path = real_ip(addr, NULL);
+   if (!real_path) {
+     return ret;
+   }
+   record(SOCKETS, CONNECT, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return ret;
+}
+
 //*****************************************************************************
 
+//int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+//int listen(int sockfd, int backlog)
+int socket(int domain, int type, int protocol);
+
+int bind(int sockfd, const struct sockaddr *addr,
+	 socklen_t addrlen)
+{
+   CHECK_LOADED_FNS()
+   PUTS("bind")
+   DECL_VARS()
+   GET_START_TIME()
+     const int ret = orig_bind(sockfd, addr, addrlen);
+   GET_END_TIME();
+
+   const int fd = sockfd;
+
+   if (ret == -1) {
+      error_code = errno;
+   }
+
+   char *real_path = real_ip(addr, NULL);
+   if (!real_path) {
+     return ret;
+   }
+   record(SOCKETS, BIND, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return ret;
+  // handle bind (command after socket and before accept
+
+}
