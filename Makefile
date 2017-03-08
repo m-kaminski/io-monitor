@@ -1,29 +1,62 @@
+#
+# Copyright (c) 2017 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http:#www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+include_dir = include
 
 ifndef NDEBUG
-CFLAGS = -g
+CFLAGS = -g -I../$(include_dir)
 else
-CFLAGS = -O2 -DNDEBUG
+CFLAGS = -O2 -DNDEBUG -I../$(include_dir)
 endif
 
-headers = ops.h domains.h ops_names.h domains_names.h
+headers = $(include_dir)/ops.h \
+          $(include_dir)/domains.h \
+          $(include_dir)/ops_names.h \
+          $(include_dir)/domains_names.h
 
-all: mq_listener io_monitor.so
+all: mq_listener/mq_listener io_monitor/io_monitor.so
 
-ops_names.h: ops.h
-	cat ops.h | ./enum_to_strings.sh ops_names >ops_names.h
+#build automatic headers
 
-domains_names.h: domains.h
-	cat domains.h | ./enum_to_strings.sh domains_names >domains_names.h
+$(include_dir)/ops_names.h: $(include_dir)/ops.h
+	@echo -n  "generating header $@ ... "
+	@cd $(include_dir) ; cat ops.h | ./enum_to_strings.sh ops_names >ops_names.h
+	@echo OK
 
-io_monitor.so: io_monitor.c $(headers)
-	gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl
+$(include_dir)/domains_names.h: $(include_dir)/domains.h
+	@echo -n  "generating header $@ ... "
+	@cd $(include_dir) ; cat domains.h | ./enum_to_strings.sh domains_names >domains_names.h
+	@echo OK
 
+#build io monitor
 
-mq_listener: mq_listener.c $(headers)
-	gcc $(CFLAGS) mq_listener.c -o mq_listener
+io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers)
+	@echo -n  "generating $@ ... "
+	@cd io_monitor ; gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl
+	@echo OK
+
+#build listener
+
+mq_listener/mq_listener: mq_listener/mq_listener.c $(headers)
+	@echo -n  "generating $@ ... "
+	@cd mq_listener ; gcc $(CFLAGS) mq_listener.c -o mq_listener
+	@echo OK
 
 clean:
-	rm -f mq_listener
-	rm -f io_monitor.so
-	rm -f domains_names.h
-	rm -f ops_names.h
+	rm -f mq_listener/mq_listener
+	rm -f io_monitor/io_monitor.so
+	rm -f $(include_dir)/domains_names.h
+	rm -f $(include_dir)/ops_names.h
