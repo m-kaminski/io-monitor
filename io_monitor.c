@@ -316,7 +316,13 @@ typedef int (*orig_accept_f_type)(int sockfd, struct sockaddr *addr, socklen_t *
 typedef int (*orig_bind_f_type)(int socket, const struct sockaddr *addr, socklen_t addrlen);
 typedef int (*orig_listen_f_type)(int sockfd, int backlog);
 typedef int (*orig_socket_f_type)(int domain, int type, int protocol);
-   
+
+// dirs
+typedef int (*orig_chdir_f_type)(const char* path);
+typedef int (*orig_fchdir_f_type)(int fd);
+typedef int (*orig_mkdir_f_type)(const char* path, mode_t mode);
+typedef int (*orig_mkdirat_f_type)(int dirfd, const char* pathname, mode_t mode);
+typedef int (*orig_rmdir_f_type)(const char* pathname);
 
 // unique identifier to know originator of metrics. defaults to 'u' (unspecified)
 static char facility[5];
@@ -425,6 +431,12 @@ static orig_accept_f_type orig_accept = NULL;
 static orig_bind_f_type orig_bind = NULL;
 static orig_listen_f_type orig_listen = NULL;
 static orig_socket_f_type orig_socket = NULL;
+
+static orig_chdir_f_type orig_chdir = NULL;
+static orig_fchdir_f_type orig_fchdir = NULL;
+static orig_mkdir_f_type orig_mkdir = NULL;
+static orig_mkdirat_f_type orig_mkdirat = NULL;
+static orig_rmdir_f_type orig_rmdir = NULL;
 
 void load_library_functions();
 
@@ -601,6 +613,10 @@ void load_library_functions() {
    orig_bind = (orig_bind_f_type)dlsym(RTLD_NEXT,"bind");
    orig_listen = (orig_listen_f_type)dlsym(RTLD_NEXT,"listen");
    orig_socket = (orig_socket_f_type)dlsym(RTLD_NEXT,"socket");
+
+   // dirs
+   orig_chdir = (orig_chdir_f_type)dlsym(RTLD_NEXT,"chdir");
+   
 
 }
 
@@ -2586,3 +2602,121 @@ int bind(int sockfd, const struct sockaddr *addr,
   // handle bind (command after socket and before accept
 
 }
+
+//*****************************************************************************
+
+int chdir(const char* path)
+{
+   CHECK_LOADED_FNS()
+   PUTS("chdir")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_chdir(path);
+   GET_END_TIME()
+
+   if (rc == 0) {
+      error_code = 0;
+   } else {
+      error_code = errno;
+   }
+
+   record(DIRS, CHDIR, FD_NONE, path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
+int fchdir(int fd)
+{
+   CHECK_LOADED_FNS()
+   PUTS("fchdir")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_fchdir(fd);
+   GET_END_TIME()
+
+   if (rc == 0) {
+      error_code = 0;
+   } else {
+      error_code = errno;
+   }
+
+   record(DIRS, CHDIR, fd, NULL, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
+int mkdir(const char* path, mode_t mode)
+{
+   CHECK_LOADED_FNS()
+   PUTS("mkdir")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_mkdir(path, mode);
+   GET_END_TIME()
+
+   if (rc == 0) {
+      error_code = 0;
+   } else {
+      error_code = errno;
+   }
+
+   record(DIRS, MKDIR, FD_NONE, path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
+int mkdirat(int dirfd, const char* pathname, mode_t mode)
+{
+   CHECK_LOADED_FNS()
+   PUTS("mkdirat")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_mkdirat(dirfd, pathname, mode);
+   GET_END_TIME()
+
+   if (rc == 0) {
+      error_code = 0;
+   } else {
+      error_code = errno;
+   }
+
+   record(DIRS, MKDIR, dirfd, pathname, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
+int rmdir(const char* pathname)
+{
+   CHECK_LOADED_FNS()
+   PUTS("rmdir")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_rmdir(pathname);
+   GET_END_TIME()
+
+   if (rc == 0) {
+      error_code = 0;
+   } else {
+      error_code = errno;
+   }
+
+   record(DIRS, RMDIR, FD_NONE, pathname, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
