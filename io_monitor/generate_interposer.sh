@@ -1,5 +1,11 @@
 #!/bin/sh
 
+#generate contents of following files:
+# io_function_types.h - typedefs of functions that are intercepted
+# io_function_orig_handlers.h - definitions of function pointers adhering to typedefs listed above
+# intercept functions.h - intercept functions themselves
+# assign_functions - assigns original functions 
+
 cat monitored_functions.data | while read -r LINE ; do
     if echo $LINE | egrep '^#|^$' >/dev/null ; then
 	continue;
@@ -16,6 +22,8 @@ cat monitored_functions.data | while read -r LINE ; do
     S2=`echo $LINE | cut -d '|' -f 5`
     HOOK_AFTER=`echo $LINE | cut -d '|' -f 6`
     REALPATH=`echo $LINE | cut -d '|' -f 7`
+
+    #generate content for intercept_functions.h
     echo "/*"
     echo return: $RET
     echo name: $NAME
