@@ -27,6 +27,8 @@ headers = $(include_dir)/ops.h \
           $(include_dir)/ops_names.h \
           $(include_dir)/domains_names.h
 
+io_monitor_objs = io_monitor/io_monitor.o io_monitor/intercept_functions.o
+
 all: mq_listener/mq_listener io_monitor/io_monitor.so
 
 #build automatic headers
@@ -43,7 +45,13 @@ $(include_dir)/domains_names.h: $(include_dir)/domains.h
 
 #build io monitor
 
-io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers)
+io_monitor/intercept_functions.o: io_monitor/intercept_functions.c
+	@echo -n  "generating $@ ... "
+	@cd io_monitor ; gcc $(CFLAGS) -c intercept_functions.c -o intercept_functions.o
+	@echo OK
+
+
+io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers) io_monitor/intercept_functions.o
 	@echo -n  "generating $@ ... "
 	@cd io_monitor ; gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl
 	@echo OK
