@@ -1500,5 +1500,140 @@ int bind(int sockfd, const struct sockaddr *addr,
 
 }
 
+//*****************************************************************************
+
+int open(const char* pathname, int flags, ...)
+{
+   CHECK_LOADED_FNS()
+   PUTS("open")
+   DECL_VARS()
+   GET_START_TIME()
+   const int fd = orig_open(pathname, flags);
+   GET_END_TIME()
+
+   if (fd == -1) {
+      error_code = errno;
+   }
+
+   char* real_path = realpath(pathname, NULL);
+   record(FILE_OPEN_CLOSE, OPEN, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return fd;
+}
+
+//*****************************************************************************
+
+int open64(const char* pathname, int flags, ...)
+{
+   CHECK_LOADED_FNS()
+   PUTS("open64")
+   DECL_VARS()
+   GET_START_TIME()
+   const int fd = orig_open64(pathname, flags);
+   GET_END_TIME()
+
+   if (fd == -1) {
+      error_code = errno;
+   }
+
+   char* real_path = realpath(pathname, NULL);
+   record(FILE_OPEN_CLOSE, OPEN, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return fd;
+}
+
+//*****************************************************************************
+
+int creat(const char* pathname, mode_t mode)
+{
+   CHECK_LOADED_FNS()
+   PUTS("creat")
+   DECL_VARS()
+   GET_START_TIME()
+   const int fd = orig_creat(pathname, mode);
+   GET_END_TIME()
+
+   if (fd == -1) {
+      error_code = errno;
+   }
+
+   char* real_path = realpath(pathname, NULL);
+   record(FILE_OPEN_CLOSE, OPEN, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return fd;
+}
+
+//*****************************************************************************
+
+int creat64(const char* pathname, mode_t mode)
+{
+   CHECK_LOADED_FNS()
+   PUTS("creat64")
+   DECL_VARS()
+   GET_START_TIME()
+   const int fd = orig_creat64(pathname, mode);
+   GET_END_TIME()
+
+   if (fd == -1) {
+      error_code = errno;
+   }
+
+   char* real_path = realpath(pathname, NULL);
+   record(FILE_OPEN_CLOSE, OPEN, fd, real_path, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+   free(real_path);
+
+   return fd;
+}
+
+//*****************************************************************************
+
+int close(int fd)
+{
+   CHECK_LOADED_FNS()
+   PUTS("close")
+   DECL_VARS()
+   GET_START_TIME()
+   const int rc = orig_close(fd);
+   GET_END_TIME()
+
+   if (rc != 0) {
+      error_code = errno;
+   }
+
+   record(FILE_OPEN_CLOSE, CLOSE, fd, NULL, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
+//*****************************************************************************
+
+int fclose(FILE* fp)
+{
+   CHECK_LOADED_FNS()
+   PUTS("fclose")
+   DECL_VARS()
+   GET_START_TIME()
+   const int fd = fileno(fp);
+   const int rc = orig_fclose(fp);
+   GET_END_TIME()
+
+   if (rc != 0) {
+      error_code = errno;
+   }
+
+   record(FILE_OPEN_CLOSE, CLOSE, fd, NULL, NULL,
+          TIME_BEFORE(), TIME_AFTER(), error_code, ZERO_BYTES);
+
+   return rc;
+}
+
 
 
