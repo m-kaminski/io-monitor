@@ -36,7 +36,7 @@ static const int MESSAGE_QUEUE_PROJECT_ID = 'm';
 
 //*****************************************************************************
 
-void print_log_entry(struct monitor_record_t *data)
+void print_log_entry_formatted(struct monitor_record_t *data)
 {
   static int ln=0;
   if (!((ln)&3))
@@ -61,6 +61,17 @@ void print_log_entry(struct monitor_record_t *data)
 	 data->bytes_transferred, data->s1, data->s2);
 }
 
+void print_log_entry_csv(struct monitor_record_t* data)
+{
+  printf("%s,%d,%f,%d,%s,%s,%d,%d,%zu,%s,%s\n",
+         data->facility,
+         data->timestamp,
+         data->elapsed_time,
+         data->pid,
+         domains_names[data->dom_type],
+         ops_names[data->op_type], data->error_code, data->fd,
+         data->bytes_transferred, data->s1, data->s2);
+}
 
 
 int main(int argc, char* argv[]) {
@@ -68,6 +79,7 @@ int main(int argc, char* argv[]) {
    int message_queue_key;
    int message_queue_id;
    int rc;
+   int csv_mode = 0;
    ssize_t message_size_received;
    MONITOR_MESSAGE monitor_message;
 
@@ -78,6 +90,12 @@ int main(int argc, char* argv[]) {
    }
 
    message_queue_path = argv[1];
+
+   if (argc > 2) {
+      if (!strcmp(argv[2], "--csv")) {
+         csv_mode = 1;
+      }
+   }
 
    message_queue_key = ftok(message_queue_path, MESSAGE_QUEUE_PROJECT_ID);
    if (message_queue_key == -1) {
@@ -103,7 +121,11 @@ int main(int argc, char* argv[]) {
                                      0,   // long type
                                      0);  // int flag
       if (message_size_received > 0) {
-         print_log_entry(&monitor_message.monitor_record);
+         if (csv_mode) {
+            print_log_entry_csv(&monitor_message.monitor_record);
+         } else {
+            print_log_entry_formatted(&monitor_message.monitor_record);
+         }
       } else {
          printf("rc = %zu\n", message_size_received);
          printf("errno = %d\n", errno);
