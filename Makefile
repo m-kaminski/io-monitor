@@ -46,9 +46,12 @@ $(include_dir)/domains_names.h: $(include_dir)/domains.h
 #build io monitor
 
 
-io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers)
+io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers) io_monitor/monitored_functions.data
+	@echo -n  "generating header files for intercepts ... "
+	@cd io_monitor ; ./generate_interposer.sh
+	@echo OK
 	@echo -n  "generating $@ ... "
-	@cd io_monitor ; gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl
+	@cd io_monitor ; gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl -Wno-error
 	@echo OK
 
 #build listener

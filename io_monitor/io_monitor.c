@@ -113,7 +113,6 @@ static int have_elapsed_threshold = 0;
 static double elapsed_threshold = 0.0;
 
 
-#include "io_function_orig_handlers.h"
 void load_library_functions();
 
    
@@ -128,7 +127,7 @@ __attribute__((constructor)) void init() {
    /* retrieve actual command that was called */
    char cmdline[PATH_MAX];
    sprintf(cmdline, "/proc/%d/cmdline", getpid());
-   int fd = orig_open(cmdline, O_RDONLY);
+   int fd = orig_open(cmdline, O_RDONLY,0600);
    int len = orig_read(fd, cmdline, PATH_MAX);
    if (len) {
      len--;

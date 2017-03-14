@@ -1,3 +1,6 @@
-#PROTOTYPE|DOMAIN|OP|S1|S2|HOOK_AFTER|HOOK_BEFORE
-int open(const char* pathname, int flags, int mode)| FILE_OPEN_CLOSE | OPEN |real_path|NULL|if (fd == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+#PROTOTYPE                                      |DOMAIN           |OP          |S1         |S2      |HOOK_AFTER                                                                                          | nHOOK_BEFORE
+int open(const char* pathname, int flags, ...)  | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+int open64(const char* pathname, int flags, ...)| FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
 
+ssize_t read(int fd, void* buf, size_t count)   |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+int close(int fd)                               |FILE_OPEN_CLOSE  | CLOSE      | NULL      | NULL   | if (result == -1) {error_code = errno;}                                                            |
