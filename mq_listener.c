@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
                printf("error: unable to initialize plugin\n");
                exit(1);
             }
+            plugin_mode = 1;
          }
       } else {
          show_usage_and_exit(argv[0], "unrecognized option");

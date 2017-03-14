@@ -7,7 +7,7 @@ endif
 
 headers = ops.h domains.h ops_names.h domains_names.h
 
-all: mq_listener io_monitor.so
+all: mq_listener io_monitor.so sample_plugin.so
 
 ops_names.h: ops.h
 	cat ops.h | ./enum_to_strings.sh ops_names >ops_names.h
@@ -22,8 +22,12 @@ io_monitor.so: io_monitor.c $(headers)
 mq_listener: mq_listener.c $(headers)
 	gcc $(CFLAGS) mq_listener.c -o mq_listener -ldl
 
+sample_plugin.so: sample_plugin.c $(headers) plugin.h monitor_record.h
+	gcc $(CFLAGS) -shared -fPIC sample_plugin.c -o sample_plugin.so
+
 clean:
 	rm -f mq_listener
 	rm -f io_monitor.so
 	rm -f domains_names.h
 	rm -f ops_names.h
+	rm -f sample_plugin.so
