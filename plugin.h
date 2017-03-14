@@ -7,6 +7,12 @@
 #define PLUGIN_ACCEPT_DATA  1
 #define PLUGIN_REFUSE_DATA  0
 
+
+typedef int (*PFN_OPEN_PLUGIN)(const char* plugin_config);
+typedef void (*PFN_CLOSE_PLUGIN)();
+typedef int (*PFN_OK_TO_ACCEPT_DATA)();
+typedef int (*PFN_PROCESS_DATA)(struct monitor_record_t* data);
+
 /*
 int open_plugin(const char* plugin_config);
 void close_plugin();

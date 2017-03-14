@@ -20,7 +20,7 @@ io_monitor.so: io_monitor.c $(headers)
 
 
 mq_listener: mq_listener.c $(headers)
-	gcc $(CFLAGS) mq_listener.c -o mq_listener
+	gcc $(CFLAGS) mq_listener.c -o mq_listener -ldl
 
 clean:
 	rm -f mq_listener
