@@ -66,3 +66,7 @@ clean:
 	rm -f io_monitor/io_monitor.so
 	rm -f $(include_dir)/domains_names.h
 	rm -f $(include_dir)/ops_names.h
+	rm -f io_monitor/io_function_types.h
+	rm -f io_monitor/io_function_orig_handlers.h
+	rm -f io_monitor/intercept_functions.h
+	rm -f io_monitor/assign_functions.h
