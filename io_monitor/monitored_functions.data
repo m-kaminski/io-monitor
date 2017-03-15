@@ -1,10 +1,21 @@
-#PROTOTYPE                                      |DOMAIN           |OP          |S1         |S2      |HOOK_AFTER                                                                                          | HOOK_BEFORE
-#-----------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
-#variants of open                               |                 |            |           |        |                                                                                                    |
-#-----------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
-int open(const char* pathname, int flags, ...)  | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
-int open64(const char* pathname, int flags, ...)| FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
-#-----------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
-ssize_t read(int fd, void* buf, size_t count)   |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
-#-----------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
-int close(int fd)                               |FILE_OPEN_CLOSE  | CLOSE      | NULL      | NULL   | if (result == -1) {error_code = errno;}                                                            |
+#PROTOTYPE                                                    |DOMAIN           |OP          |S1         |S2      |HOOK_AFTER                                                                                          |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+#variants of open and close                                   |                 |            |           |        |                                                                                                    |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+int open(const char* pathname, int flags, ...)                | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+int open64(const char* pathname, int flags, ...)              | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+int close(int fd)                                             |FILE_OPEN_CLOSE  | CLOSE      | NULL      | NULL   | if (result == -1) {error_code = errno;}                                                            |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+#variants of read                                             |                 |            |           |        |                                                                                                    |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+ssize_t read(int fd, void* buf, size_t count)                 |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+#variants of write                                            |                 |            |           |        |                                                                                                    |
+#-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
+ssize_t write(int fd, const void* buf, size_t count)          |FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno; check_for_http(FILE_WRITE, fd, buf, count, TIME_BEFORE(), TIME_AFTER());|
+ssize_t send(int fd, const void* buf, size_t count, int flags)|FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno; check_for_http(FILE_WRITE, fd, buf, count, TIME_BEFORE(), TIME_AFTER());|
+ssize_t pwrite(int fd, const void* buf, size_t count, off_t offset)|FILE_WRITE  | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t writev(int fd, const struct iovec* iov, int iovcnt)   |FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t pwritev(int fd, const struct iovec* iov, int iovcnt, off_t offset)|FILE_WRITE | WRITE| NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+
+
