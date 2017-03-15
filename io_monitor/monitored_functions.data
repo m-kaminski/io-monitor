@@ -1,14 +1,25 @@
-#PROTOTYPE                                                    |DOMAIN           |OP          |S1         |S2      |HOOK_AFTER                                                                                          |
+#PROTOTYPE                                                    |DOMAIN           |OP          |S1         |S2      |HOOK_AFTER|
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
 #variants of open and close                                   |                 |            |           |        |                                                                                                    |
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
-int open(const char* pathname, int flags, ...)                | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
-int open64(const char* pathname, int flags, ...)              | FILE_OPEN_CLOSE | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+int open(const char* pathname, int flags, ...)                |FILE_OPEN_CLOSE  | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+int open64(const char* pathname, int flags, ...)              |FILE_OPEN_CLOSE  | OPEN       |real_path  | NULL   |if (result == -1) {error_code = errno;} char real_path[PATH_MAX]=""; realpath(pathname, real_path); |
+FILE* fopen(const char* path, const char* mode)               |FILE_OPEN_CLOSE  | OPEN       |real_path  | mode   |int fd; if (result == NULL) {error_code=errno; fd=FD_NONE;} else {fd=fileno(result);} char real_path[PATH_MAX]=""; realpath(path, real_path); |
+FILE* fopen64(const char* path, const char* mode)             |FILE_OPEN_CLOSE  | OPEN       |real_path  | mode   |int fd; if (result == NULL) {error_code=errno; fd=FD_NONE;} else {fd=fileno(result);} char real_path[PATH_MAX]=""; realpath(path, real_path); |
+int fclose(FILE* fp)                                          |FILE_OPEN_CLOSE  | CLOSE      | NULL      | NULL   | if (result == -1) {error_code = errno;}                                                            |
 int close(int fd)                                             |FILE_OPEN_CLOSE  | CLOSE      | NULL      | NULL   | if (result == -1) {error_code = errno;}                                                            |
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
 #variants of read                                             |                 |            |           |        |                                                                                                    |
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
 ssize_t read(int fd, void* buf, size_t count)                 |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t recv(int fd, void* buf, size_t count, int flags)      |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t pread(int fd, void* buf, size_t count, off_t offset)  |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t readv(int fd, const struct iovec* iov, int iovcnt)    |FILE_READ        | READ       | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+ssize_t preadv(int fd, const struct iovec* iov, int iovcnt, off_t offset)|FILE_READ| READ    | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
+size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream)|FILE_READ      | READ       | NULL      | NULL   | if (result < 0) error_code = errno;      int fd = fileno(stream); int count = size*nmemb;          |
+# keep in mind, that for each variadic function (other than open) you must include its v... version in this file too (in addition to its standard version)                                                             |
+int fscanf(FILE* stream, const char* format, ...)             |FILE_READ        | READ       | NULL      | NULL   | if (result == EOF) error_code = errno;   int fd = fileno(stream); int count = result;              |
+int vfscanf(FILE* stream, const char* format, va_list ap)     |FILE_READ        | READ       | NULL      | NULL   | if (result == EOF) error_code = errno;   int fd = fileno(stream); int count = result;              |
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
 #variants of write                                            |                 |            |           |        |                                                                                                    |
 #-------------------------------------------------------------|-----------------|------------|-----------|--------|----------------------------------------------------------------------------------------------------|
@@ -17,5 +28,7 @@ ssize_t send(int fd, const void* buf, size_t count, int flags)|FILE_WRITE       
 ssize_t pwrite(int fd, const void* buf, size_t count, off_t offset)|FILE_WRITE  | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
 ssize_t writev(int fd, const struct iovec* iov, int iovcnt)   |FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
 ssize_t pwritev(int fd, const struct iovec* iov, int iovcnt, off_t offset)|FILE_WRITE | WRITE| NULL      | NULL   | if (result < 0) error_code = errno;                                                                |
-
+int fprintf(FILE* stream, const char* format, ...)            |FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;      int fd = fileno(stream); int count = result;              |
+int vfprintf(FILE* stream, const char* format, va_list ap)    |FILE_WRITE       | WRITE      | NULL      | NULL   | if (result < 0) error_code = errno;      int fd = fileno(stream); int count = result;              |
+size_t fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream)|FILE_WRITE|WRITE     | NULL      | NULL   | if (result < nmemb) error_code = errno;  int fd = fileno(stream); int count = size*nmemb;          |
 

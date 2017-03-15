@@ -210,6 +210,10 @@ unsigned int domain_list_to_bit_mask(const char* domain_list)
 	   break;
 	 }
      }
+     if (!strcmp(token, "ALL")) {
+	 bit_mask |= (~0);
+       }
+       
    }
    free(domain_list_copy);
 
