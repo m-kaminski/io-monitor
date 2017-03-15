@@ -75,7 +75,9 @@ EOF
 	fi
     fi
     echo  "\n   /* call original function */"
-    if [ $VAU -eq 0 ] && [ $ISOPEN -ne 0 ] ; then
+    if [ "$RET" = 'void' ] ; then
+	echo -n "   orig_$NAME("	
+    elif [ $VAU -eq 0 ] && [ $ISOPEN -ne 0 ] ; then
 	echo -n "   $RET result = orig_v$NAME("
     else
 	echo -n "   $RET result = orig_$NAME("
@@ -116,7 +118,9 @@ EOF
     echo "   /* end of hook; record metadata on function call */"
     echo "   record($DOMAIN, $OP, $FD, $S1, $S2, "
     echo "   TIME_BEFORE(), TIME_AFTER(), error_code, $COUNT);"
-    echo "   return result;"
+    if [ "$RET" != 'void' ] ; then
+	echo "   return result;"
+    fi
     echo "}"
     ) | indent >> intercept_functions.h
     echo >> intercept_functions.h
