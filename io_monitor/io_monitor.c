@@ -529,6 +529,29 @@ void check_for_http(int dom, int fd, const char* buf, size_t count, struct timev
   
 }
 
+char *real_ip(const struct sockaddr *addr, char *out)
+{
+   /* for now assume that addr->sa_family = AF_INET; for inet6 or other sockets,
+      different way of differentiating will be needed */
+   if (addr->sa_family != AF_INET) {
+     PUTS("Warn: connect to addresses other than AF_INET won't work with current gen of io_monitor");
+     return 0 ;
+   }
+   struct sockaddr_in * ai = (((struct sockaddr_in*)(addr)));
+   char* real_path;
+   if (out) {
+     real_path = out;
+   } else {
+     real_path = malloc(100);
+   }
+   
+   char* ip = (char*)&ai->sin_addr;
+
+   sprintf(&real_path[0], "%u.%u.%u.%u:%u" ,
+	   0xff& ip[0], 0xff& ip[1] ,0xff& ip[2] ,0xff& ip[3],
+	   be16toh(ai->sin_port));
+   return real_path;
+}
 
 
 #include "intercept_functions.h"
