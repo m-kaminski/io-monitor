@@ -147,7 +147,13 @@ __attribute__((constructor)) void init() {
    sprintf(ppid, "%d", getppid());
    record(START_STOP, START, 0, cmdline, ppid,
           TIME_BEFORE(), TIME_AFTER(), 0, ZERO_BYTES);
-   
+
+   char *current_dir = get_current_dir_name();
+   record(DIRS, CHDIR, FD_NONE, current_dir, NULL,
+          TIME_BEFORE(), TIME_AFTER(), 0, ZERO_BYTES);
+
+
+   free(current_dir);
 }
 
 //*****************************************************************************
