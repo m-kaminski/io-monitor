@@ -80,6 +80,32 @@ EOF
     VAU=$? # var args usage
     echo $PROTOTYPE | grep -F 'open' >/dev/null
     ISOPEN=$? # some variant of open (so mode can be passed in last argument
+    echo $PROTOTYPE | grep -F 'exec' >/dev/null
+    ISEXEC=$? # some variant of exec (so record and hook must happen BEFORE call)
+
+        #if hook or prototype contains variable fd
+    echo $HOOK $PROTOTYPE | grep -F ' fd' >/dev/null
+    if [ $? -eq 0 ] ; then
+	FD='fd'
+    else
+	FD='FD_NONE'
+    fi
+    echo $HOOK $PROTOTYPE | grep -F ' count' >/dev/null
+    if [ $? -eq 0 ] ; then
+	COUNT=count
+    else
+	COUNT=ZERO_BYTES
+    fi
+
+    if [ $ISEXEC -eq 0 ] ; then
+    echo '   GET_END_TIME();'
+	echo "\n   /* invoke hook */"
+	echo "   $HOOK"
+	echo "   /* end of hook; record metadata on function call */"
+	
+	echo "   record($DOMAIN, $OP, $FD, $S1, $S2, "
+	echo "   TIME_BEFORE(), TIME_AFTER(), error_code, $COUNT);"
+    fi
     
     if [ $VAU -eq 0 ] ; then
 	echo "   /* set up variadic arguments */"
@@ -118,24 +144,18 @@ EOF
 	echo 'va_end(args);'
     fi
     echo '   GET_END_TIME();'
-    #if hook or prototype contains variable fd
-    echo $HOOK $PROTOTYPE | grep -F ' fd' >/dev/null
-    if [ $? -eq 0 ] ; then
-	FD='fd'
-    else
-	FD='FD_NONE'
+
+    # not a variant of exec; call hook and record now
+    if [ $ISEXEC -ne 0 ] ; then
+	echo "\n   /* invoke hook */"
+	echo "   $HOOK"
+	echo "   /* end of hook; record metadata on function call */"
+	
+	echo "   record($DOMAIN, $OP, $FD, $S1, $S2, "
+	echo "   TIME_BEFORE(), TIME_AFTER(), error_code, $COUNT);"
     fi
-    echo $HOOK $PROTOTYPE | grep -F ' count' >/dev/null
-    if [ $? -eq 0 ] ; then
-	COUNT=count
-    else
-	COUNT=ZERO_BYTES
-    fi
-    echo "\n   /* invoke hook */"
-    echo "   $HOOK"
-    echo "   /* end of hook; record metadata on function call */"
-    echo "   record($DOMAIN, $OP, $FD, $S1, $S2, "
-    echo "   TIME_BEFORE(), TIME_AFTER(), error_code, $COUNT);"
+    
+
     if [ "$RET" != 'void' ] ; then
 	echo "   return result;"
     fi
