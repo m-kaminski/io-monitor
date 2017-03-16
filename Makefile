@@ -25,11 +25,12 @@ endif
 headers = $(include_dir)/ops.h \
           $(include_dir)/domains.h \
           $(include_dir)/ops_names.h \
-          $(include_dir)/domains_names.h
+          $(include_dir)/domains_names.h \
+          $(include_dir)/plugin.h
 
 io_monitor_objs = io_monitor/io_monitor.o io_monitor/intercept_functions.o
 
-all: mq_listener/mq_listener io_monitor/io_monitor.so
+all: mq_listener/mq_listener io_monitor/io_monitor.so plugins/sample_plugin.so
 
 #build automatic headers
 
@@ -44,8 +45,6 @@ $(include_dir)/domains_names.h: $(include_dir)/domains.h
 	@echo OK
 
 #build io monitor
-
-
 io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers) io_monitor/monitored_functions.data
 	@echo -n  "generating header files for intercepts ... "
 	@cd io_monitor ; ./generate_interposer.sh
@@ -55,10 +54,15 @@ io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers) io_monitor/monitore
 	@echo OK
 
 #build listener
-
 mq_listener/mq_listener: mq_listener/mq_listener.c $(headers)
 	@echo -n  "generating $@ ... "
-	@cd mq_listener ; gcc $(CFLAGS) mq_listener.c -o mq_listener
+	@cd mq_listener ; gcc $(CFLAGS) mq_listener.c -o mq_listener -ldl
+	@echo OK
+
+#build sample plugin
+plugins/sample_plugin.so: plugins/sample_plugin.c $(headers)
+	@echo -n  "generating $@ ... "
+	@cd plugins ; gcc $(CFLAGS) -shared -fPIC sample_plugin.c -o sample_plugin.so
 	@echo OK
 
 clean:
@@ -70,3 +74,5 @@ clean:
 	rm -f io_monitor/io_function_orig_handlers.h
 	rm -f io_monitor/intercept_functions.h
 	rm -f io_monitor/assign_functions.h
+	rm -f plugins/*.so
+
