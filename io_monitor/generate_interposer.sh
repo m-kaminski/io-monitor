@@ -54,7 +54,7 @@ cat monitored_functions.data | while read -r LINE ; do
     OP=`echo $LINE | cut -d '|' -f 3`
     S1=`echo $LINE | cut -d '|' -f 4`
     S2=`echo $LINE | cut -d '|' -f 5`
-    HOOK_AFTER=`echo $LINE | cut -d '|' -f 6`
+    HOOK=`echo $LINE | cut -d '|' -f 6`
     REALPATH=`echo $LINE | cut -d '|' -f 7`
 
     #generate content for intercept_functions.h
@@ -69,6 +69,8 @@ cat monitored_functions.data | while read -r LINE ; do
     echo '{'
     echo 'CHECK_LOADED_FNS();'
     echo 'PUTS("'$NAME'");'
+
+    
 cat <<EOF
     DECL_VARS();
    GET_START_TIME();
@@ -108,7 +110,7 @@ EOF
 		    echo -n args\),
 		fi
 	    else
-		echo $ARG | rev | cut -d ' ' -f 1  | rev | tr '\n' ','
+		echo $ARG | rev | cut -d ' ' -f 1  | rev | tr '\n' ',' | tr -d '[]'
 	    fi
 	done | sed 's/),/)/'
     echo ';'
@@ -117,20 +119,20 @@ EOF
     fi
     echo '   GET_END_TIME();'
     #if hook or prototype contains variable fd
-    echo $HOOK_AFTER $PROTOTYPE | grep -F ' fd' >/dev/null
+    echo $HOOK $PROTOTYPE | grep -F ' fd' >/dev/null
     if [ $? -eq 0 ] ; then
 	FD='fd'
     else
 	FD='FD_NONE'
     fi
-    echo $HOOK_AFTER $PROTOTYPE | grep -F ' count' >/dev/null
+    echo $HOOK $PROTOTYPE | grep -F ' count' >/dev/null
     if [ $? -eq 0 ] ; then
 	COUNT=count
     else
 	COUNT=ZERO_BYTES
     fi
     echo "\n   /* invoke hook */"
-    echo "   $HOOK_AFTER"
+    echo "   $HOOK"
     echo "   /* end of hook; record metadata on function call */"
     echo "   record($DOMAIN, $OP, $FD, $S1, $S2, "
     echo "   TIME_BEFORE(), TIME_AFTER(), error_code, $COUNT);"

@@ -559,5 +559,58 @@ char *real_ip(const struct sockaddr *addr, char *out)
    return real_path;
 }
 
+/* returns NULLPTR terminated array of void pointers;
+ * array is malloc-allocated and must be freed after use (unless in exec context) */
+/* 0th fiels in resulting table is undefined; first item from va_list is placed
+ * on 1st field */
+void** va_list_to_table(va_list args)
+{
+  const int max_args=4096;
+  void ** result = malloc(max_args * sizeof(** result) );
+  void *tmp;
+  int i = 1;
+  while (tmp = va_arg(args, void*)) {
+    result[i] = tmp;
+    i++;
+  }
+  result[i] = 0;
+  return result;
+}
+
+/* helper functions for exec intercepts */
+int orig_vexecl (const char *path, const char *arg, va_list args)
+{
+  void **argt = va_list_to_table(args);
+  argt[0] = (void*)arg;
+  return execv(path, (char * const *)argt); 
+}
+
+int orig_vexecle (const char *path, const char *arg, va_list args)
+{
+  void **argt = va_list_to_table(args);
+  argt[0] = (void*)arg;
+  char * const * envp;
+  int i;
+  for (i = 0 ; argt[i] ; i++) ;
+
+  if (i) {
+    envp = argt[i - 1];
+  } else {
+    envp = 0;
+  }
+  argt[i - 1] = NULL;
+  return execvpe(path, (char * const *)argt, envp); 
+}
+
+
+int orig_vexeclp (const char *path, const char *arg, va_list args)
+{
+  void **argt = va_list_to_table(args);
+  argt[0] = (void*)arg;
+  return execvp(path, (char * const *)argt); 
+
+}
+
+
 
 #include "intercept_functions.h"

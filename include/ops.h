@@ -67,6 +67,7 @@ typedef enum {
    ACCEPT,         //  (SOCKETS)
    LISTEN,         //  (SOCKETS)
    BIND,           //  (SOCKETS)
+   EXEC,           //  (PROCESSES)
    
    // operations listed below are NOT directly associated with
    // C functions
