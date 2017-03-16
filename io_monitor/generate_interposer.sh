@@ -1,14 +1,30 @@
 #!/bin/sh
+#
+# Copyright (c) 2017 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http:#www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 
 #generate contents of following files:
 # io_function_types.h - typedefs of functions that are intercepted
-rm -f io_function_types.h
+cat ../include/header_generated.txt > io_function_types.h
 # io_function_orig_handlers.h - definitions of function pointers adhering to typedefs listed above
-rm -f io_function_orig_handlers.h
+cat ../include/header_generated.txt > io_function_orig_handlers.h
 # intercept_functions.h - intercept functions themselves
-rm -f intercept_functions.h
+cat ../include/header_generated.txt > intercept_functions.h
 # assign_functions.h - assigns original functions 
-rm -f assign_functions.h
+cat ../include/header_generated.txt > assign_functions.h
 
 which indent  >/dev/null
 if [ $? -ne 0 ] ; then

@@ -1,3 +1,23 @@
+//
+// Copyright (c) 2017 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#ifndef __OPS_H
+#define __OPS_H
+
+
 // define the operations that we're tracking. please note that in some
 // cases several C library calls all get identified the same (e.g., open,
 // open64, fopen are all recorded as OPEN).
@@ -61,3 +81,5 @@ typedef enum {
    
    END_OPS         // keep this one as last
 } OP_TYPE;
+
+#endif
