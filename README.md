@@ -115,6 +115,10 @@ of operations as one (e.g., to enable/disable monitoring).
 | START_ON_OPEN      | N         | starts paused, resumes on open of specified file |
 | START_ON_ELAPSED   | N         | starts paused, resumes on elapsed time crossing specified threshold |
 
+## System requirements
+
+This program should work on any Linux distribution. For build, in addition to standard
+toolchain, you will need indent utility.
 
 ## START_ON_OPEN
 
