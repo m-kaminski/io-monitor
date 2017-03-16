@@ -40,9 +40,9 @@ of operations as one (e.g., to enable/disable monitoring).
 | SCANDIR       | DIR_METADATA     | NOT-IMPLEMENTED |
 | SEEKDIR       | DIR_METADATA     | seekdir |
 | TELLDIR       | DIR_METADATA     | telldir |
-| CHDIR         | DIRS             | NOT-IMPLEMENTED |
-| MKDIR         | DIRS             | NOT-IMPLEMENTED |
-| RMDIR         | DIRS             | NOT-IMPLEMENTED |
+| CHDIR         | DIRS             | chdir, fchdir |
+| MKDIR         | DIRS             | mkdir, mkdirat |
+| RMDIR         | DIRS             | rmdir |
 | DUP           | FILE_DESCRIPTORS | NOT-IMPLEMENTED |
 | FCNTL         | FILE_DESCRIPTORS | NOT-IMPLEMENTED |
 | ACCESS        | FILE_METADATA    | access, faccessat |
