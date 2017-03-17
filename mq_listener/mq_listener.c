@@ -18,9 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
-#include <dlfcn.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
@@ -33,11 +31,7 @@
 #include "plugin.h"
 #include "plugin_chain.h"
 
-
-
 static const int MESSAGE_QUEUE_PROJECT_ID = 'm';
-
-
 
 void show_usage_and_exit(const char* arg0, const char* error_msg)
 {
@@ -52,8 +46,6 @@ void show_usage_and_exit(const char* arg0, const char* error_msg)
 }
 
 //*****************************************************************************
-
-
 
 int main(int argc, char* argv[])
 {
