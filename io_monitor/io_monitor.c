@@ -531,10 +531,25 @@ void check_for_http(int dom, int fd, const char* buf, size_t count, struct timev
       record(HTTP, HTTP_REQ_RECV, fd, buffer1, buffer2,
 	     s, e, 0, 0);
     }
+  } else if ((!strncmp("HTTP/1",buffer1, 6))) {
+    int resp_code;
+    char resp_proto[linelen[0]+1];
+    char resp_desc[linelen[0]+1];
+    sscanf(buffer1,"%s %d %s",resp_proto, &resp_code, resp_desc);
+    if (resp_code >=100 && resp_code <1000) {
+      if (dom == FILE_WRITE) {
+	record(HTTP, HTTP_RESP_SEND, fd, buffer1, buffer2,
+	       s, e, 0, 0);
+      } else {
+	record(HTTP, HTTP_RESP_RECV, fd, buffer1, buffer2,
+	       s, e, 0, 0);
+      }
+    }
   }
   
 }
 
+/* extract real IP inet address from connect call */
 char *real_ip(const struct sockaddr *addr, char *out)
 {
    /* for now assume that addr->sa_family = AF_INET; for inet6 or other sockets,
