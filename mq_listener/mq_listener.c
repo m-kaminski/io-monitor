@@ -94,17 +94,12 @@ void show_usage_and_exit(const char* arg0, const char* error_msg)
 
 //*****************************************************************************
 
+#include "plugin_chain.h"
+
 int main(int argc, char* argv[])
 {
    const char* message_queue_path;
-   const char* plugin_library = NULL;
-   const char* plugin_options = NULL;
-   PFN_OPEN_PLUGIN pfn_open_plugin = NULL;
-   PFN_CLOSE_PLUGIN pfn_close_plugin = NULL;
-   PFN_OK_TO_ACCEPT_DATA pfn_ok_to_accept_data = NULL;
-   PFN_PROCESS_DATA pfn_process_data = NULL;
-   int plugin_paused = 0;
-   void* plugin_handle = NULL;
+
    int message_queue_key;
    int message_queue_id;
    int rc;
@@ -127,42 +122,16 @@ int main(int argc, char* argv[])
          if (argc < 4) {
             show_usage_and_exit(argv[0], "missing plugin library");
          } else {
-            plugin_library = argv[3];
-            if (argc > 4) {
-               plugin_options = argv[4];
-            }
-            plugin_handle = dlopen(plugin_library, RTLD_NOW);
-            if (NULL == plugin_handle) {
-               printf("error: unable to open plugin library '%s'\n",
-                      plugin_library);
-               exit(1);
-            }
-
-            pfn_open_plugin =
-               (PFN_OPEN_PLUGIN) dlsym(plugin_handle, "open_plugin");
-            pfn_close_plugin =
-               (PFN_CLOSE_PLUGIN) dlsym(plugin_handle, "close_plugin");
-            pfn_ok_to_accept_data =
-               (PFN_OK_TO_ACCEPT_DATA) dlsym(plugin_handle, "ok_to_accept_data");
-            pfn_process_data =
-               (PFN_PROCESS_DATA) dlsym(plugin_handle, "process_data"); 
-
-            if ((NULL == pfn_open_plugin) ||
-                (NULL == pfn_close_plugin) ||
-                (NULL == pfn_ok_to_accept_data) ||
-                (NULL == pfn_process_data)) {
-               dlclose(plugin_handle);
-               printf("error: plugin missing 1 or more entry points\n");
-               exit(1);
-            }
-
-            rc_plugin = (*pfn_open_plugin)(plugin_options);
-            if (rc_plugin == PLUGIN_OPEN_FAIL) {
-               dlclose(plugin_handle);
-               printf("error: unable to initialize plugin\n");
-               exit(1);
-            }
-            plugin_mode = 1;
+	     const char* plugin_library = 0;
+	     const char* plugin_options = 0;
+	     plugin_library = argv[3];
+	     if (argc > 4) {
+	       plugin_options = argv[4];
+	     }
+	     if (!load_plugin(plugin_library, plugin_options, NULL)) {
+	       /* plugin successfully loaded */	     
+	     plugin_mode = 1;
+	   }
          }
       } else {
          show_usage_and_exit(argv[0], "unrecognized option");
@@ -194,36 +163,14 @@ int main(int argc, char* argv[])
                 0,   // long type
                 0);  // int flag
       if (message_size_received > 0) {
-         if (plugin_mode) {
-            if (plugin_paused) {
-               rc_plugin = (*pfn_ok_to_accept_data)();
-               if (rc_plugin == PLUGIN_ACCEPT_DATA) {
-                  plugin_paused = 0;
-               }
-            }
-
-            if (!plugin_paused) {
-               rc_plugin = (*pfn_process_data)(&monitor_message.monitor_record);
-               if (rc_plugin == PLUGIN_REFUSE_DATA) {
-                  plugin_paused = 1;
-               }
-            }
-         } else if (csv_mode) {
-            print_log_entry_csv(&monitor_message.monitor_record);
-         } else {
-            print_log_entry_formatted(&monitor_message.monitor_record);
-         }
+	execute_plugin_chain(&monitor_message.monitor_record);
       } else {
          printf("rc = %zu\n", message_size_received);
          printf("errno = %d\n", errno);
       }
    }
 
-   if (plugin_mode && (plugin_handle != NULL)) {
-      (*pfn_close_plugin)();
-      dlclose(plugin_handle);
-      plugin_handle = NULL;
-   }
+   unload_all_plugins();
 
    return 0;
 }
