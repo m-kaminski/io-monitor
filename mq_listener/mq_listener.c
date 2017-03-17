@@ -31,6 +31,8 @@
 #include "domains_names.h"
 #include "mq.h"
 #include "plugin.h"
+#include "plugin_chain.h"
+
 
 
 static const int MESSAGE_QUEUE_PROJECT_ID = 'm';
@@ -51,7 +53,7 @@ void show_usage_and_exit(const char* arg0, const char* error_msg)
 
 //*****************************************************************************
 
-#include "plugin_chain.h"
+
 
 int main(int argc, char* argv[])
 {
