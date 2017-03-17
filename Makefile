@@ -30,7 +30,7 @@ headers = $(include_dir)/ops.h \
 
 plugins = plugins/sample_plugin.so plugins/output_csv.so plugins/output_table.so
 
-mq_listener_objs = mq_listener/mq_listener.o mq_listener/plugin_chain.o
+mq_listener_objs = mq_listener/mq_listener.o mq_listener/plugin_chain.o mq_listener/command_parser.o
 
 all: mq_listener/mq_listener io_monitor/io_monitor.so $(plugins)
 

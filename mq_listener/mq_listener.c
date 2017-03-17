@@ -30,8 +30,45 @@
 #include "mq.h"
 #include "plugin.h"
 #include "plugin_chain.h"
+#include "command_parser.h"
 
 static const int MESSAGE_QUEUE_PROJECT_ID = 'm';
+
+int c_mq_path(const char* name, const char** args);
+
+int c_load_plugin(const char* name, const char** args);
+
+int c_config(const char* name, const char** args);
+
+int c_help(const char* name, const char** args);
+
+struct command commands[] =
+  {
+    {"load-plugin", "l",
+     "<plugin-library>[:alias] [plugin-options]",
+     "Start program with particular plugin enabled;"
+     " Plugin is loaded as so library. After path to library you may add alias"
+     " (useful when you will have multiple instances of given plugin loaded, and"
+     " may want to unload one of them)."
+     " After that you may supply parameter string for your plugin.",
+     c_load_plugin},
+    {"mq-path", "m",
+     "<path>",
+     "Select message queue file. This parameter is mandatory unless config file is used",
+    c_mq_path},
+    {"config", "c",
+     "<path>",
+     "Start mq_listener with particular config file",
+     c_config},
+    {"help", "h",
+     "",
+     "Print help message",
+     c_help},
+    {"","","","",NULL}
+  };
+
+
+//*****************************************************************************
 
 void show_usage_and_exit(const char* arg0, const char* error_msg)
 {
@@ -46,65 +83,40 @@ void show_usage_and_exit(const char* arg0, const char* error_msg)
 }
 
 //*****************************************************************************
+int input_loop();
+
+int message_queue_key = -1;
+int message_queue_id;
 
 int main(int argc, char* argv[])
 {
-   const char* message_queue_path;
-
-   int message_queue_key;
-   int message_queue_id;
-   int rc;
-   int csv_mode = 0;
-   int plugin_mode = 0;
-   int rc_plugin;
-   ssize_t message_size_received;
-   MONITOR_MESSAGE monitor_message;
-
+   int rc =  parse_args(argc, argv);
+   if (rc) {
+     return rc;
+   } else {
+     if (message_queue_id == -1) {
+	fprintf(stderr, "You need to provide message queue either "
+		"via config file or via --mq-path/-m command line option\n");
+     }
+     return input_loop();
+   }
+   
    if (argc < 2) {
       show_usage_and_exit(argv[0], "missing arguments");
    }
 
-   message_queue_path = argv[1];
 
-   if (argc > 2) {
-      if (!strcmp(argv[2], "--csv")) {
-         csv_mode = 1;
-      } else if (!strcmp(argv[2], "--plugin")) {
-         if (argc < 4) {
-            show_usage_and_exit(argv[0], "missing plugin library");
-         } else {
-	     const char* plugin_library = 0;
-	     const char* plugin_options = 0;
-	     plugin_library = argv[3];
-	     if (argc > 4) {
-	       plugin_options = argv[4];
-	     }
-	     if (!load_plugin(plugin_library, plugin_options, NULL)) {
-	       /* plugin successfully loaded */	     
-	     plugin_mode = 1;
-	   }
-         }
-      } else {
-         show_usage_and_exit(argv[0], "unrecognized option");
-      }
-   }
+   unload_all_plugins();
 
-   message_queue_key = ftok(message_queue_path, MESSAGE_QUEUE_PROJECT_ID);
-   if (message_queue_key == -1) {
-      printf("error: unable to obtain key for message queue path '%s'\n",
-             message_queue_path);
-      printf("errno: %d\n", errno);
-      exit(1);
-   }
+   return 0;
+}
 
-   message_queue_id = msgget(message_queue_key, (0664 | IPC_CREAT));
-   if (message_queue_id == -1) {
-      printf("error: unable to obtain id for message queue path '%s'\n",
-             message_queue_path);
-      printf("errno: %d\n", errno);
-      exit(1);
-   }
+//*****************************************************************************
 
+int input_loop()
+{
+   MONITOR_MESSAGE monitor_message;
+   ssize_t message_size_received;
    while (1) {
       memset(&monitor_message, 0, sizeof(MONITOR_MESSAGE));
       message_size_received =
@@ -112,18 +124,81 @@ int main(int argc, char* argv[])
                 &monitor_message,  // void* ptr
                 sizeof(struct monitor_record_t),  // size_t nbytes
                 0,   // long type
-                0);  // int flag
+                IPC_NOWAIT);  // int flag
       if (message_size_received > 0) {
 	execute_plugin_chain(&monitor_message.monitor_record);
       } else {
-         printf("rc = %zu\n", message_size_received);
-         printf("errno = %d\n", errno);
+	fprintf(stderr, "rc = %zu\n", message_size_received);
+	fprintf(stderr, "errno = %d\n", errno);
       }
    }
+}
 
-   unload_all_plugins();
+//*****************************************************************************
 
-   return 0;
+int c_mq_path(const char* name, const char** args)
+{
+  const char* message_queue_path;
+
+  if (!args[0]) {
+    fprintf(stderr, "error: Message queue path is required\n");
+  } else {
+    message_queue_path = args[0];
+  }
+  
+  message_queue_key = ftok(message_queue_path, MESSAGE_QUEUE_PROJECT_ID);
+  if (message_queue_key == -1) {
+    fprintf(stderr, "error: unable to obtain key for message queue path '%s'\n",
+	    message_queue_path);
+    fprintf(stderr, "errno: %d\n", errno);
+    exit(1);
+  }
+  
+  message_queue_id = msgget(message_queue_key, (0664 | IPC_CREAT));
+  if (message_queue_id == -1) {
+    fprintf(stderr, "error: unable to obtain id for message queue path '%s'\n",
+	    message_queue_path);
+    fprintf(stderr, "errno: %d\n", errno);
+    exit(1);
+  }
+}
+
+//*****************************************************************************
+
+int c_load_plugin(const char* name, const char** args)
+{
+  const char* plugin_library = 0;
+  const char* plugin_options = 0;
+  const char* plugin_alias = 0;
+  /* TODO extract alias */
+  plugin_library = args[0];
+  plugin_options = args[1];
+  printf("Attempting to load plugin %s\n", plugin_library);
+  int res = load_plugin(plugin_library, plugin_options, NULL);
+  if (res) {
+    fprintf(stderr, "Filed to load plugin. Will now quit\n");
+    exit(1);    
+  } else {
+    printf("Load successful\n");
+    return 0;
+  }
+}
+
+//*****************************************************************************
+
+int c_config(const char* name, const char** args)
+{
+  char buf[PATH_MAX];
+  while (fgets(buf, PATH_MAX, stdin)) {
+    parse_command(buf);
+  }
+}
+
+//*****************************************************************************
+
+int c_help(const char* name, const char** args)
+{
+
 }
 
 //*****************************************************************************
