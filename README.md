@@ -43,7 +43,7 @@ of operations as one (e.g., to enable/disable monitoring).
 | CHDIR         | DIRS             | chdir, fchdir |
 | MKDIR         | DIRS             | mkdir, mkdirat |
 | RMDIR         | DIRS             | rmdir |
-| DUP           | FILE_DESCRIPTORS | NOT-IMPLEMENTED |
+| DUP           | FILE_DESCRIPTORS | dup, dup2, dup3 |
 | FCNTL         | FILE_DESCRIPTORS | NOT-IMPLEMENTED |
 | ACCESS        | FILE_METADATA    | access, faccessat |
 | CHMOD         | FILE_METADATA    | chmod, fchmod, fchmodat |
@@ -62,12 +62,12 @@ of operations as one (e.g., to enable/disable monitoring).
 | LINK          | LINKS            | NOT-IMPLEMENTED |
 | READLINK      | LINKS            | NOT-IMPLEMENTED |
 | UNLINK        | LINKS            | NOT-IMPLEMENTED |
-| CHROOT        | MISC             | NOT-IMPLEMENTED |
-| FLOCK         | MISC             | NOT-IMPLEMENTED |
-| MKNOD         | MISC             | NOT-IMPLEMENTED |
-| RENAME        | MISC             | NOT-IMPLEMENTED |
-| EXEC          | PROCESSES        | NOT-IMPLEMENTED |
-| FORK          | PROCESSES        | NOT-IMPLEMENTED |
+| CHROOT        | MISC             | chroot |
+| FLOCK         | MISC             | flock |
+| MKNOD         | MISC             | mknod |
+| RENAME        | MISC             | rename |
+| EXEC          | PROCESSES        | exec* (all 6 variants) |
+| FORK          | PROCESSES        | fork |
 | KILL          | PROCESSES        | NOT-IMPLEMENTED |
 | SEEK          | SEEKS            | NOT-IMPLEMENTED |
 | SOCKET        | SOCKETS          | NOT-IMPLEMENTED |
@@ -97,7 +97,6 @@ of operations as one (e.g., to enable/disable monitoring).
 | HTTP             | HTTP network operations          | TBD: http verb events |
 | LINKS            | hard and soft link operations    | LINK, READLINK, UNLINK |
 | MISC             | misc. operations                 | CHROOT, FLOCK, MKNOD, RENAME |
-| NETWORKING       | networking operations            | TBD: accept, listen, connect, etc. |
 | PROCESSES        | process operations               | EXEC, FORK, KILL |
 | SEEKS            | file seek operations             | SEEK |
 | SOCKETS          | socket operations                | NOT-IMPLEMENTED |
