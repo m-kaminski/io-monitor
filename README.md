@@ -44,7 +44,6 @@ of operations as one (e.g., to enable/disable monitoring).
 | MKDIR         | DIRS             | mkdir, mkdirat |
 | RMDIR         | DIRS             | rmdir |
 | DUP           | FILE_DESCRIPTORS | dup, dup2, dup3 |
-| FCNTL         | FILE_DESCRIPTORS | NOT-IMPLEMENTED |
 | ACCESS        | FILE_METADATA    | access, faccessat |
 | CHMOD         | FILE_METADATA    | chmod, fchmod, fchmodat |
 | CHOWN         | FILE_METADATA    | chown, fchown, fchownat, lchown |
@@ -52,7 +51,6 @@ of operations as one (e.g., to enable/disable monitoring).
 | UTIME         | FILE_METADATA    | utime |
 | CLOSE         | FILE_OPEN_CLOSE  | close, fclose |
 | OPEN          | FILE_OPEN_CLOSE  | open, open64, creat, creat64, fopen, fopen64 |
-| _IO_NEW_FOPEN | FILE_OPEN_CLOSE  | _IO_new_fopen |
 | READ          | FILE_READ        | read, pread, readv, preadv, fread, fscanf, vfscanf |
 | ALLOCATE      | FILE_SPACE       | posix_fallocate, fallocate |
 | TRUNCATE      | FILE_SPACE       | truncate, ftruncate |
@@ -68,9 +66,9 @@ of operations as one (e.g., to enable/disable monitoring).
 | RENAME        | MISC             | rename |
 | EXEC          | PROCESSES        | exec* (all 6 variants) |
 | FORK          | PROCESSES        | fork |
-| KILL          | PROCESSES        | NOT-IMPLEMENTED |
+| KILL          | PROCESSES        | kill |
 | SEEK          | SEEKS            | NOT-IMPLEMENTED |
-| SOCKET        | SOCKETS          | NOT-IMPLEMENTED |
+| SOCKET        | SOCKETS          | socket |
 | START         | START_STOP       | startup of a process (no corresponding function call) |
 | STOP          | START_STOP       | end of a process (no corresponding function call) |
 | FLUSH         | SYNCS            | fflush |
