@@ -67,7 +67,8 @@ int process_data(struct monitor_record_t* data)
 	 domains_names[data->dom_type],
 	 ops_names[data->op_type], data->error_code, data->fd,
 	 data->bytes_transferred, data->s1, data->s2);
-   return PLUGIN_ACCEPT_DATA;
+  
+  return PLUGIN_ACCEPT_DATA;
 }
 
 //*****************************************************************************

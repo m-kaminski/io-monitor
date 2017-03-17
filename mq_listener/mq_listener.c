@@ -36,48 +36,6 @@
 static const int MESSAGE_QUEUE_PROJECT_ID = 'm';
 
 
-//*****************************************************************************
-
-void print_log_entry_formatted(struct monitor_record_t *data)
-{
-  static int ln=0;
-  if (!((ln)&3))
-    puts(""); /* print extra blank line every fourth line */
-
-
-  if (!((ln++)&15)) {
-    /* print header every 16th line"*/
-    printf("%10s %10s %8s %5s %20s  %-20s %3s %5s %8s %s\n",
-	   "FACILITY", "TS.", "ELAPSED",
-	   "PID", "DOMAIN", "OPERATION", "ERR", "FD",
-	   "XFER", "PARM");
-  }
- 
-  printf("%10s %10d %8.4f %5d %20s  %-20s %3d %5d %8zu %s %s\n",
-	 data->facility,
-	 data->timestamp,
-	 data->elapsed_time,
-	 data->pid,
-	 domains_names[data->dom_type],
-	 ops_names[data->op_type], data->error_code, data->fd,
-	 data->bytes_transferred, data->s1, data->s2);
-}
-
-//*****************************************************************************
-
-void print_log_entry_csv(struct monitor_record_t* data)
-{
-  printf("%s,%d,%f,%d,%s,%s,%d,%d,%zu,%s,%s\n",
-         data->facility,
-         data->timestamp,
-         data->elapsed_time,
-         data->pid,
-         domains_names[data->dom_type],
-         ops_names[data->op_type], data->error_code, data->fd,
-         data->bytes_transferred, data->s1, data->s2);
-}
-
-//*****************************************************************************
 
 void show_usage_and_exit(const char* arg0, const char* error_msg)
 {
@@ -87,7 +45,6 @@ void show_usage_and_exit(const char* arg0, const char* error_msg)
 
    printf("usage: %s <msg-queue-path> [options]\n", arg0);
    printf("options:\n");
-   printf("\t--csv - print output in csv format\n");
    printf("\t--plugin <plugin-library> [plugin-options]\n");
    exit(1);
 }

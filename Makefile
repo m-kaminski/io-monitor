@@ -28,9 +28,9 @@ headers = $(include_dir)/ops.h \
           $(include_dir)/domains_names.h \
           $(include_dir)/plugin.h
 
-io_monitor_objs = io_monitor/io_monitor.o io_monitor/intercept_functions.o
+plugins = plugins/sample_plugin.so plugins/output_csv.so plugins/output_table.so
 
-all: mq_listener/mq_listener io_monitor/io_monitor.so plugins/sample_plugin.so
+all: mq_listener/mq_listener io_monitor/io_monitor.so $(plugins)
 
 #build automatic headers
 
@@ -60,9 +60,9 @@ mq_listener/mq_listener: mq_listener/mq_listener.c $(headers)
 	@echo OK
 
 #build sample plugin
-plugins/sample_plugin.so: plugins/sample_plugin.c $(headers)
+plugins/%.so: plugins/%.c $(headers)
 	@echo -n  "generating $@ ... "
-	@cd plugins ; gcc $(CFLAGS) -shared -fPIC sample_plugin.c -o sample_plugin.so
+	@cd plugins ; gcc $(CFLAGS) -shared -fPIC ../$< -o ../$@
 	@echo OK
 
 clean:

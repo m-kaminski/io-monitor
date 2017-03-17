@@ -21,20 +21,20 @@ int execute_plugin_chain(struct monitor_record_t *rec)
   struct plugin_chain* p = plugins;
   int rc_plugin;
   while (p) {
-  if (p->plugin_paused) {
-    rc_plugin = p->pfn_ok_to_accept_data();
-    if (rc_plugin == PLUGIN_ACCEPT_DATA) {
-      p->plugin_paused = 0;
+    if (p->plugin_paused) {
+      rc_plugin = p->pfn_ok_to_accept_data();
+      if (rc_plugin == PLUGIN_ACCEPT_DATA) {
+	p->plugin_paused = 0;
+      }
     }
-  }
 
-  if (!p->plugin_paused) {
-    rc_plugin = p->pfn_process_data(rec);
-    if (rc_plugin == PLUGIN_REFUSE_DATA) {
-      p->plugin_paused = 1;
+    if (!p->plugin_paused) {
+      rc_plugin = p->pfn_process_data(rec);
+      if (rc_plugin == PLUGIN_REFUSE_DATA) {
+	p->plugin_paused = 1;
+      }
     }
-  }
-  p = p->next_plugin;
+    p = p->next_plugin;
   }
   return 0;
 }

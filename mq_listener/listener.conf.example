@@ -1,0 +1,16 @@
+# this is example configuration file for mq_listener component of io_monitor
+# it is composed of sequence of commands issued to listener
+
+# You must always set path to message queue. It has to be the same path as configured for
+# io_monitor
+mq_path /tmp/mq1
+
+# it is worth to load at least one plugin, that will either display data or forward it to another
+# entity.
+load_plugin ../plugins/output_table.so
+
+# after setting up required plugin chain you may want to start capture (only after this command capture will start)
+start_capture
+
+# you may want to daemonize your mq_listener if you don't want to interact with it
+# daemonize
