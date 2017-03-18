@@ -1,5 +1,5 @@
 #!/bin/sh
 cat header_generated.txt
-echo "const char* $1[] = {"
+echo "static const char* $1[] = {"
 grep -v "^//" | grep , | cut -d , -f 1 | cut -d / -f 1 | tr -d \  | while read i ; do echo \"$i\", ; done
 echo "};"

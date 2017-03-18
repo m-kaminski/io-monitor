@@ -28,9 +28,11 @@ headers = $(include_dir)/ops.h \
           $(include_dir)/domains_names.h \
           $(include_dir)/plugin.h
 
-io_monitor_objs = io_monitor/io_monitor.o io_monitor/intercept_functions.o
+plugins = plugins/sample_plugin.so plugins/output_csv.so plugins/output_table.so
 
-all: mq_listener/mq_listener io_monitor/io_monitor.so plugins/sample_plugin.so
+mq_listener_objs = mq_listener/mq_listener.o mq_listener/plugin_chain.o mq_listener/command_parser.o
+
+all: mq_listener/mq_listener io_monitor/io_monitor.so $(plugins)
 
 #build automatic headers
 
@@ -49,20 +51,25 @@ io_monitor/io_monitor.so: io_monitor/io_monitor.c $(headers) io_monitor/monitore
 	@echo -n  "generating header files for intercepts ... "
 	@cd io_monitor ; ./generate_interposer.sh
 	@echo OK
-	@echo -n  "generating $@ ... "
+	@echo -n  "generating library $@ ... "
 	@cd io_monitor ; gcc $(CFLAGS) -shared -fPIC io_monitor.c -o io_monitor.so -ldl -Wno-error
 	@echo OK
 
 #build listener
-mq_listener/mq_listener: mq_listener/mq_listener.c $(headers)
-	@echo -n  "generating $@ ... "
-	@cd mq_listener ; gcc $(CFLAGS) mq_listener.c -o mq_listener -ldl
+mq_listener/%.o: mq_listener/%.c $(headers) mq_listener/*.h
+	@echo -n  "generating object $@ ... "
+	@cd mq_listener ; gcc $(CFLAGS) -c ../$< -o ../$@
+	@echo OK
+
+mq_listener/mq_listener: $(mq_listener_objs)
+	@echo -n  "generating executable $@ ... "
+	@gcc $(CFLAGS) $^ -o mq_listener/mq_listener -ldl
 	@echo OK
 
 #build sample plugin
-plugins/sample_plugin.so: plugins/sample_plugin.c $(headers)
-	@echo -n  "generating $@ ... "
-	@cd plugins ; gcc $(CFLAGS) -shared -fPIC sample_plugin.c -o sample_plugin.so
+plugins/%.so: plugins/%.c $(headers)
+	@echo -n  "generating plugin $@ ... "
+	@cd plugins ; gcc $(CFLAGS) -shared -fPIC ../$< -o ../$@
 	@echo OK
 
 clean:
