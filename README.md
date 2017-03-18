@@ -97,7 +97,7 @@ of operations as one (e.g., to enable/disable monitoring).
 | FILE_METADATA    | file metadata operations         | ACCESS, CHMOD, CHOWN, STAT, UTIME |
 | FILE_WRITE       | file write operations            | WRITE |
 | FILE_READ        | file read operations             | READ |
-| FILE_OPEN_CLOSE  | file open/close operations       | CLOSE, OPEN, _IO_NEW_FOPEN |
+| FILE_OPEN_CLOSE  | file open/close operations       | CLOSE, OPEN |
 | FILE_SYSTEMS     | file system operations           | MOUNT, UMOUNT |
 | FILE_SPACE       | file space adjustment operations | ALLOCATE, TRUNCATE |
 | HTTP             | HTTP network operations          | TBD: http verb events |
@@ -105,7 +105,7 @@ of operations as one (e.g., to enable/disable monitoring).
 | MISC             | misc. operations                 | CHROOT, FLOCK, MKNOD, RENAME |
 | PROCESSES        | process operations               | EXEC, FORK, KILL |
 | SEEKS            | file seek operations             | SEEK |
-| SOCKETS          | socket operations                | NOT-IMPLEMENTED |
+| SOCKETS          | socket operations                | SOCKET, BIND, CONNECT |
 | START_STOP       | begin and end of processes       | START, STOP |
 | SYNCS            | file sync/flush operations       | FLUSH, SYNC |
 | XATTRS           | extended attribute operations    | GETXATTR, LISTXATTR, REMOVEXATTR, SETXATTR |
@@ -167,10 +167,12 @@ would prevent the normal Python initialization traffic from being captured by th
 As io_monitor is a library collecting datapoints, default way to collect and display these datapoints is utility called mq_listener. To run mq_listener it is required to give it path to message queue file. It is also advisable to load at least one output plugin, as otherwise mq_listener won't tell you about events, it collects.
 
 Assuming, you have your mq in root directory of this project, you can run mq_listener following way:
-  ./mq_listener/mq_listener -m mq1 -p plugins/output_table.so
+
+    ./mq_listener/mq_listener -m mq1 -p plugins/output_table.so
 
 Alternatively you can use config file for following invocation:
-  ./mq_listener/mq_listener -c mq_listener/listener.conf.example
+
+    ./mq_listener/mq_listener -c mq_listener/listener.conf.example
 
 There is possibility to load multiple plugins at once for following reasons:
 - use plugins as UI
@@ -178,6 +180,7 @@ There is possibility to load multiple plugins at once for following reasons:
 - use multiple forms of display or multiple forms of logging at once.
 
 Consider following example:
-  ./mq_listener/mq_listener -m mq1 -p plugins/filter_domain.so HTTP -p plugins/output_table.so
 
-In this case only HTTP related events will be displayed even if MONITOR_DOMAINS variable is set to ALL. This is convenient way to change subset of monitored functions without restarting monitored application.
+    ./mq_listener/mq_listener -m mq1 -p plugins/filter_domain.so HTTP -p plugins/output_table.so
+
+In this case only HTTP related events will be displayed even if MONITOR_DOMAINS variable is set to ALL. This is convenient way to change subset of monitored functions without restarting monitored application. Keep in mind that correct order of plugins is important.
