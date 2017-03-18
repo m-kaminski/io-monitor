@@ -114,9 +114,13 @@ int load_plugin(const char* library, const char* options, const char* alias)
   }
 
   if (plugins) {
-    plugins->next_plugin = new_plugin;
+    struct plugin_chain* tmp = plugins;
+    while (tmp->next_plugin)
+      tmp = tmp->next_plugin;
+    tmp->next_plugin = new_plugin;
   } else {
     plugins=new_plugin;
   }
+  
   return 0;
 }
