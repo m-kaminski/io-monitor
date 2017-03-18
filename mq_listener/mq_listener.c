@@ -44,71 +44,54 @@ int c_help(const char* name, const char** args);
 
 struct command commands[] =
   {
-    {"load-plugin", "l",
+    {"load-plugin", "p",
      "<plugin-library>[:alias] [plugin-options]",
      "Start program with particular plugin enabled;"
      " Plugin is loaded as so library. After path to library you may add alias"
      " (useful when you will have multiple instances of given plugin loaded, and"
      " may want to unload one of them)."
      " After that you may supply parameter string for your plugin.",
-     c_load_plugin},
+     c_load_plugin,0},
     {"mq-path", "m",
      "<path>",
      "Select message queue file. This parameter is mandatory unless config file is used",
-    c_mq_path},
+    c_mq_path,0},
     {"config", "c",
      "<path>",
      "Start mq_listener with particular config file",
-     c_config},
+     c_config,0},
     {"help", "h",
      "",
      "Print help message",
-     c_help},
-    {"","","","",NULL}
+     c_help,0},
+    {"","","","",NULL,0}
   };
 
-
-//*****************************************************************************
-
-void show_usage_and_exit(const char* arg0, const char* error_msg)
-{
-   if (error_msg != NULL) {
-      printf("error: %s\n", error_msg);
-   }
-
-   printf("usage: %s <msg-queue-path> [options]\n", arg0);
-   printf("options:\n");
-   printf("\t--plugin <plugin-library> [plugin-options]\n");
-   exit(1);
-}
 
 //*****************************************************************************
 int input_loop();
 
 int message_queue_key = -1;
-int message_queue_id;
+int message_queue_id = -1;
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
-   int rc =  parse_args(argc, argv);
-   if (rc) {
-     return rc;
-   } else {
-     if (message_queue_id == -1) {
-	fprintf(stderr, "You need to provide message queue either "
-		"via config file or via --mq-path/-m command line option\n");
-     }
-     return input_loop();
-   }
+  set_commands_array(commands);
+  int rc =  parse_args(argc, argv);
+  if (rc) {
+    return rc;
+  } else {
+    if (message_queue_id == -1) {
+      fprintf(stderr, "You need to provide message queue either "
+	      "via config file or via --mq-path/-m command line option\n");
+      return 1;
+    }
+    return input_loop();
+  }
+  
+  unload_all_plugins();
    
-   if (argc < 2) {
-      show_usage_and_exit(argv[0], "missing arguments");
-   }
-
-
-   unload_all_plugins();
-
-   return 0;
+  return 0;
 }
 
 //*****************************************************************************
@@ -124,7 +107,7 @@ int input_loop()
                 &monitor_message,  // void* ptr
                 sizeof(struct monitor_record_t),  // size_t nbytes
                 0,   // long type
-                IPC_NOWAIT);  // int flag
+                0);  // int flag
       if (message_size_received > 0) {
 	execute_plugin_chain(&monitor_message.monitor_record);
       } else {
@@ -198,6 +181,14 @@ int c_config(const char* name, const char** args)
 
 int c_help(const char* name, const char** args)
 {
+  puts("mq_listener: listening end of io_monitor.");
+  puts("Example invocation:");
+  puts("   mq_listener/mq_listener -m test/1/mq1 -p plugins/output_table.so");
+  for (int i = 0; commands[i].command_function; ++i) {
+      printf("--%s / -%s %s\n", commands[i].name,
+	     commands[i].short_name, commands[i].params_desc);
+      printf("     %s\n", commands[i].help);
+  }
 
 }
 
