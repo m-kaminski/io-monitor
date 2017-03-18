@@ -68,12 +68,12 @@ int parse_command(const char* buf)
   int i;
   int j=0;
     
-  while (token = strtok_r(rest , " ", &rest)) {
+  while (token = strtok_r(rest , " \n", &rest)) {
     command_tokenized[j++] = strdup(token);
   }
   command_tokenized[j] = NULL;
-  
-  run_command(command_tokenized[0], (const char**)&(command_tokenized[1]));
+  if (command_tokenized[0])
+    run_command(command_tokenized[0], (const char**)&(command_tokenized[1]));
   j=0;
   while (command_tokenized[j]) {
     free(command_tokenized[j++]);

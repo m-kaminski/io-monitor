@@ -3,11 +3,11 @@
 
 # You must always set path to message queue. It has to be the same path as configured for
 # io_monitor
-mq-path /tmp/mq1
+mq-path mq1
 
 # it is worth to load at least one plugin, that will either display data or forward it to another
 # entity.
-load-plugin ../plugins/output_table.so
+load-plugin plugins/output_table.so
 
 # you may want to daemonize your mq_listener if you don't want to interact with it
 # daemonize

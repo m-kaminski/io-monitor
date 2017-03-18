@@ -144,6 +144,7 @@ int c_mq_path(const char* name, const char** args)
     fprintf(stderr, "errno: %d\n", errno);
     exit(1);
   }
+  return 0;
 }
 
 //*****************************************************************************
@@ -171,10 +172,17 @@ int c_load_plugin(const char* name, const char** args)
 
 int c_config(const char* name, const char** args)
 {
-  char buf[PATH_MAX];
-  while (fgets(buf, PATH_MAX, stdin)) {
-    parse_command(buf);
+  if (!args[0]) {
+    fprintf(stderr, "Path to cfg missing\n");
   }
+  FILE* f = fopen(args[0],"r");
+  char buf[PATH_MAX];
+  while (fgets(buf, PATH_MAX, f)) {
+    if (buf[0] != '#')
+      parse_command(buf);
+  }
+  fclose(f);
+  return 0;
 }
 
 //*****************************************************************************
@@ -184,12 +192,13 @@ int c_help(const char* name, const char** args)
   puts("mq_listener: listening end of io_monitor.");
   puts("Example invocation:");
   puts("   mq_listener/mq_listener -m test/1/mq1 -p plugins/output_table.so");
+  puts("   mq_listener/mq_listener -c mq_listener/listener.conf.example");
   for (int i = 0; commands[i].command_function; ++i) {
       printf("--%s / -%s %s\n", commands[i].name,
 	     commands[i].short_name, commands[i].params_desc);
       printf("     %s\n", commands[i].help);
   }
-
+  return 0;
 }
 
 //*****************************************************************************
