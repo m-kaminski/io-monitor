@@ -162,3 +162,22 @@ would prevent the normal Python initialization traffic from being captured by th
 | arg1              | context dependent |
 | arg2              | context dependent |
 
+## Running Listener
+
+As io_monitor is a library collecting datapoints, default way to collect and display these datapoints is utility called mq_listener. To run mq_listener it is required to give it path to message queue file. It is also advisable to load at least one output plugin, as otherwise mq_listener won't tell you about events, it collects.
+
+Assuming, you have your mq in root directory of this project, you can run mq_listener following way:
+  ./mq_listener/mq_listener -m mq1 -p plugins/output_table.so
+
+Alternatively you can use config file for following invocation:
+  ./mq_listener/mq_listener -c mq_listener/listener.conf.example
+
+There is possibility to load multiple plugins at once for following reasons:
+- use plugins as UI
+- use plugins as data filters (drop some events)
+- use multiple forms of display or multiple forms of logging at once.
+
+Consider following example:
+  ./mq_listener/mq_listener -m mq1 -p plugins/filter_domain.so HTTP -p plugins/output_table.so
+
+In this case only HTTP related events will be displayed even if MONITOR_DOMAINS variable is set to ALL. This is convenient way to change subset of monitored functions without restarting monitored application.

@@ -56,6 +56,9 @@ int execute_plugin_chain(struct monitor_record_t *rec)
       if (rc_plugin == PLUGIN_REFUSE_DATA) {
 	p->plugin_paused = 1;
       }
+      if (rc_plugin == PLUGIN_DROP_DATA) {
+	return 0;
+      }
     }
     p = p->next_plugin;
   }

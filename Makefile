@@ -28,7 +28,10 @@ headers = $(include_dir)/ops.h \
           $(include_dir)/domains_names.h \
           $(include_dir)/plugin.h
 
-plugins = plugins/sample_plugin.so plugins/output_csv.so plugins/output_table.so
+plugins = plugins/sample_plugin.so \
+	  plugins/output_csv.so \
+	  plugins/output_table.so \
+	  plugins/filter_domains.so
 
 mq_listener_objs = mq_listener/mq_listener.o mq_listener/plugin_chain.o mq_listener/command_parser.o
 
