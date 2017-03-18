@@ -189,11 +189,12 @@ int c_config(const char* name, const char** args)
 
 int c_help(const char* name, const char** args)
 {
+  int i;
   puts("mq_listener: listening end of io_monitor.");
   puts("Example invocation:");
   puts("   ./mq_listener/mq_listener -m mq1 -p plugins/output_table.so");
   puts("   ./mq_listener/mq_listener -c mq_listener/listener.conf.example");
-  for (int i = 0; commands[i].command_function; ++i) {
+  for (i = 0; commands[i].command_function; ++i) {
       printf("--%s / -%s %s\n", commands[i].name,
 	     commands[i].short_name, commands[i].params_desc);
       printf("     %s\n", commands[i].help);

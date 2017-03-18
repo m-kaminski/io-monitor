@@ -46,7 +46,8 @@ void set_commands_array(struct command* _commands)
  */
 int run_command(const char* name, const char** args)
 {
-  for (int i = 0; s_commands[i].command_function; ++i) {
+  int i;
+  for (i = 0; s_commands[i].command_function; ++i) {
     if (!strcmp(s_commands[i].name, name) ||
 	!strcmp(s_commands[i].short_name, name)) {
       return s_commands[i].command_function(name, args);
@@ -105,7 +106,7 @@ int parse_args(int argc, char* argv[])
   
   int apn = -1; /* argument parameter number */
   int i;
-  for (int i = 1; i!= argc ; ++i) {
+  for (i = 1; i!= argc ; ++i) {
     if (argv[i][0]=='-') {
       if (command) {
 	command_parameters[apn] = NULL;
