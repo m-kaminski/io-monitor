@@ -29,10 +29,15 @@
 #include "mq.h"
 #include "plugin.h"
 #include "plugin_chain.h"
-
+#include "command_parser.h"
 
 
 struct plugin_chain* plugins = NULL;
+
+struct listener listener = 
+{
+  parse_command
+};
 
 int execute_plugin_chain(struct monitor_record_t *rec)
 {
@@ -58,11 +63,12 @@ int execute_plugin_chain(struct monitor_record_t *rec)
 }
 
 void unload_all_plugins() {
-   /* if (plugin_mode && (plugin_handle != NULL)) { */
-   /*    (*pfn_close_plugin)(); */
-   /*    dlclose(plugin_handle); */
-   /*    plugin_handle = NULL; */
-   /* } */
+  while (plugins) {
+    plugins->pfn_close_plugin();
+    dlclose(plugins->plugin_handle);
+    printf("Closed plugin %s", plugins->plugin_library);
+    plugins = plugins->next_plugin;
+  }
 }
 
 int load_plugin(const char* library, const char* options, const char* alias)
@@ -98,7 +104,9 @@ int load_plugin(const char* library, const char* options, const char* alias)
     return 1;
   }
 
-  int rc_plugin = (*new_plugin->pfn_open_plugin)(new_plugin->plugin_options);
+  int rc_plugin = (*new_plugin->pfn_open_plugin)
+    (new_plugin->plugin_options,
+     &listener);
   if (rc_plugin == PLUGIN_OPEN_FAIL) {
     dlclose(new_plugin->plugin_handle);
     printf("error: unable to initialize plugin\n");
