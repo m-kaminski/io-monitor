@@ -7,7 +7,7 @@
 
 int main()
 {
-  int fd = open("file", O_WRONLY | O_CREAT, 0707);
+  int fd = open("file", O_WRONLY | O_CREAT, 0700);
   assert(fd > 2);
   int res = write(fd, "data", 4);
   assert(res == 4);
