@@ -99,7 +99,7 @@ EOF
 
     if [ $ISEXEC -eq 0 ] ; then
     echo '   GET_END_TIME();'
-	echo "\n   /* invoke hook */"
+	echo -e "\n   /* invoke hook */"
 	echo "   $HOOK"
 	echo "   /* end of hook; record metadata on function call */"
 	
@@ -118,7 +118,7 @@ EOF
 	    echo 'int mode = va_arg(args, int);'
 	fi
     fi
-    echo  "\n   /* call original function */"
+    echo -e "\n   /* call original function */"
     if [ "$RET" = 'void' ] ; then
 	echo -n "   orig_$NAME("	
     elif [ $VAU -eq 0 ] && [ $ISOPEN -ne 0 ] ; then
@@ -147,7 +147,7 @@ EOF
 
     # not a variant of exec; call hook and record now
     if [ $ISEXEC -ne 0 ] ; then
-	echo "\n   /* invoke hook */"
+	echo -e "\n   /* invoke hook */"
 	echo "   $HOOK"
 	echo "   /* end of hook; record metadata on function call */"
 	
