@@ -1,10 +1,10 @@
 mq_listener/mq_listener
 domains_names.h
 ops_names.h
-io-monitor/assign_functions.h
-io-monitor/intercept_functions.h
+io_monitor/assign_functions.h
+io_monitor/intercept_functions.h
 io_monitor/io_function_orig_handlers.h
-io-monitor/io_function_types.h
+io_monitor/io_function_types.h
 
 # Object files
 *.o
