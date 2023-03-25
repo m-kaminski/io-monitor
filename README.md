@@ -184,3 +184,10 @@ Consider following example:
     ./mq_listener/mq_listener -m mq1 -p plugins/filter_domain.so HTTP -p plugins/output_table.so
 
 In this case only HTTP related events will be displayed even if MONITOR_DOMAINS variable is set to ALL. This is convenient way to change subset of monitored functions without restarting monitored application. Keep in mind that correct order of plugins is important.
+
+
+## Build requirements
+- indent
+- make
+- gcc
+
