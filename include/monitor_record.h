@@ -19,8 +19,10 @@
 
 #ifdef __FreeBSD__
 #include <sys/syslimits.h>
-#else
+#elif __linux__
 #include <linux/limits.h>
+#else
+#error "unknown operating environment"
 #endif
 #define STR_LEN 256
 
